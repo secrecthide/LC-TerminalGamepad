@@ -46,4 +46,3 @@
 # Notes
 + ### transmit command is still being developed.
 + ### The mod might be laggy.
-+ ### This is my first time modding. Please report any bugs [here](https://github.com/Azure/azure-content/blob/master/contributor-guide/contributor-guide-index.md)
