@@ -42,4 +42,4 @@
 # Notes
 + ### transmit command is still being developed.
 + ### The mod might be laggy.
-+ ### This is my first time modding. Please report any bugs at the Lethal Company modding discord in my release mod post.
++ ### This is my first time modding. Please report any bugs here
