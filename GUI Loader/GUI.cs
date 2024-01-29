@@ -25,17 +25,20 @@ namespace TerminalGamepad.GUILoader
         private string[] CodesButtonNames;
 
 
-        private string[] MainButtonNames = { "Store", "Moons", "Bestiary", "Logs", "Upgrades", "Decor", "Storage", "View Monitors", "Ping", "Flash", "Scan", "Codes"};
+        private string[] MainButtonNames = { "Store", "Moons", "Scan", "Monitors", "Ping", "Flash", "Codes", "Bestiary", "Logs", "Upgrades", "Storage", "Decor"};
         private string[] ConfirmButtonNames = { "Confirm", "Deny", "Info" };
         private string[] InfoButtonNames = { "Continue", "Go Back" };
         private string[] ReturnButtonNames = { "Return" };
-        private string[] EmptyButtonNames = { "Return" };
+        private string[] EmptyButtonNames = { "Return"};
 
         private string tmp;
 
         private int myCount = 0;
         private int ItemAmount = 1;
         private int tempItemAmount;
+        private int Page = 1;
+        private int Limit = 16;
+        private int ButtonIndex = 16;
 
         private float MENUX;
         private float MENUY;
@@ -49,7 +52,6 @@ namespace TerminalGamepad.GUILoader
         private bool isUiVisible = false;
         private bool isOnTerminal = false;
         private bool isStylesLoaded = false;
-        public static bool noEnoughMoney;
 
         private bool isOnMainMenu = true;
         private bool isOnStoreMenu = false;
@@ -272,7 +274,7 @@ namespace TerminalGamepad.GUILoader
                 else
                     PlayersName[i] = StartOfRound.Instance.mapScreen.radarTargets[i - 1].name;
             }
-            
+
             RadarsNameTEMP = new string[StartOfRound.Instance.mapScreen.radarTargets.Count];
             for (int i = 0; i < StartOfRound.Instance.mapScreen.radarTargets.Count; i++)
             {
@@ -318,7 +320,7 @@ namespace TerminalGamepad.GUILoader
                 }
             }
             else if (!StartOfRound.Instance.shipHasLanded)
-                CodesButtonNames =  new string[0];
+                CodesButtonNames = new string[0];
         }
 
         private void OnGUI()
@@ -390,9 +392,17 @@ namespace TerminalGamepad.GUILoader
         }
         private void DrawButtons()
         {
-
+            if (myCount > (Limit * Page) - 1)
+            {
+                Page++;
+            }
+            else if (myCount < (Limit * (Page - 1)))
+            {
+                Page--;
+            }
             for (int i = 0; i < ButtonNames.Length; i++)
             {
+                ButtonIndex = i - (Limit * (Page - 1));
                 if (i == myCount)
                 {
                     GUI.backgroundColor = new Color32(0, 0, 50, 150);
@@ -403,10 +413,13 @@ namespace TerminalGamepad.GUILoader
                     GUI.backgroundColor = new Color32(0, 0, 20, 150);
                     buttonStyle = normalbuttonStyle;
                 }
-                if (i < 8)
-                    GUI.Button(new Rect(MENUX + (Screen.width * 0.0078f) + i * (Screen.width * 0.081f), MENUY + (Screen.height * 0.0232f), Screen.width * 0.078f, Screen.height * 0.18f), ButtonNames[i], buttonStyle);
-                else if (i < 16)
-                    GUI.Button(new Rect(MENUX + (Screen.width * 0.0078f) + (i - 8) * (Screen.width * 0.081f), MENUY + (Screen.height * 0.212f), Screen.width * 0.078f, Screen.height * 0.18f), ButtonNames[i], buttonStyle);
+                if (ButtonIndex >= 0)
+                {
+                    if (ButtonIndex < Limit / 2)
+                        GUI.Button(new Rect(MENUX + (Screen.width * 0.0078f) + ButtonIndex * (Screen.width * 0.081f), MENUY + (Screen.height * 0.0232f), Screen.width * 0.078f, Screen.height * 0.18f), ButtonNames[i], buttonStyle);
+                    else if (ButtonIndex < Limit)
+                        GUI.Button(new Rect(MENUX + (Screen.width * 0.0078f) + (ButtonIndex - 8) * (Screen.width * 0.081f), MENUY + (Screen.height * 0.212f), Screen.width * 0.078f, Screen.height * 0.18f), ButtonNames[i], buttonStyle);
+                }
             }
         }
 
@@ -542,6 +555,7 @@ namespace TerminalGamepad.GUILoader
             Cursor.visible = false;
             myCount = 0;
             ItemAmount = 1;
+            Page = 1;
 
             MenuBool(true, false, false, false, false, false, false, false, false, false, false, false, false, false, false);
         }
@@ -560,7 +574,10 @@ namespace TerminalGamepad.GUILoader
         private void Subbmit(InputAction.CallbackContext context)
         {
             if (!isOnMonitorMenu && !isOnPingMenu && !isOnFlashMenu)
+            {
                 myCount = 0;
+                Page = 1;
+            }
 
             if (myCount < ButtonNames.Length)
             {
@@ -601,7 +618,7 @@ namespace TerminalGamepad.GUILoader
                         {
                             MenuBool(false, false, false, false, false, false, false, false, false, false, true, false, false, false, false);
                         }
-                        if (TApi.GetTerminalInput().Contains("view"))
+                        if (TApi.GetTerminalInput().Contains("monitors"))
                         {
                             MenuBool(false, false, false, false, false, false, false, false, false, false, false, true, false, false, false);
                         }
@@ -768,12 +785,15 @@ namespace TerminalGamepad.GUILoader
                 TApi.Terminal.OnSubmit();
             }
             if (!isOnMonitorMenu && !isOnPingMenu && !isOnFlashMenu)
+            {
+                Page = 1;
                 myCount = 0;
+            }
         }
 
         private void GoDown(InputAction.CallbackContext context)
         {
-            if (isUiVisible)
+            if (isUiVisible && myCount + 8 <= (Limit * Page) - 1)
             {
                 myCount += 8;
                 if (myCount > ButtonNames.Length - 1)
@@ -782,7 +802,7 @@ namespace TerminalGamepad.GUILoader
         }
         private void GoUp(InputAction.CallbackContext context)
         {
-            if (isUiVisible)
+            if (isUiVisible && myCount - 8 >= (Limit * (Page - 1)))
             {
                 myCount -= 8;
                 if (myCount < 0)
