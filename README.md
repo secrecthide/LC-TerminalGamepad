@@ -1,8 +1,8 @@
 
 # TerminalGamepad
-### Do you like controllers? Do you play split-screen with your friends? Well, then this mod is for you!
- 
-### With the help of this mod, you can use your controller to navigate through a panel that has a distinctive design and all of the possible commands in Lethal Company.
+### This mod makes the controller able to write on the terminal with an on-screen panel.
+
+![](https://i.imgur.com/H06o4rj.png)
 
 # Controls (Keyboard / Controller)
 ## You can change the following buttons in Lethal Company settings:
@@ -45,13 +45,18 @@
 
 # Notes
 + ### transmit command is still being developed.
-+ ### The mod might be laggy.
-+ Please report any bugs [here](https://discord.com/channels/1168655651455639582/1201370625428705450)
++ ### Please report any bugs [here](https://discord.com/channels/1168655651455639582/1201370625428705450)
 
-# Changelog
-## 1.0.3
+# 1.0.7
++ Better performance
++ bugs fixes
+
+# 1.0.5
++ Edited description
+
+# 1.0.3
 + Added pages
-+ View monitors are now called monitors
++ View monitors is now called monitors
 
-## 1.0.0
+# 1.0.0
 + Initial release

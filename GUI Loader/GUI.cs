@@ -76,6 +76,7 @@ namespace TerminalGamepad.GUILoader
         {
             ButtonNames = MainButtonNames;
             TerminalEvents();
+
             StoreButtonNames = new string[TApi.Terminal.buyableItemsList.Length];
             for (int i = 0; i < TApi.Terminal.buyableItemsList.Length; i++)
             {
@@ -211,18 +212,20 @@ namespace TerminalGamepad.GUILoader
         }
         private void LoadButtonsInfo()
         {
-            StorageButtonNamesTEMP = new string[StartOfRound.Instance.unlockablesList.unlockables.Count];
-            for (int i = 0; i < StartOfRound.Instance.unlockablesList.unlockables.Count; i++)
+            if (isOnStorageMenu)
+            {
+                StorageButtonNamesTEMP = new string[StartOfRound.Instance.unlockablesList.unlockables.Count];
+                for (int i = 0; i < StartOfRound.Instance.unlockablesList.unlockables.Count; i++)
             {
                 if (StartOfRound.Instance.unlockablesList.unlockables[i].inStorage)
                     StorageButtonNamesTEMP[i] = StartOfRound.Instance.unlockablesList.unlockables[i].unlockableName;
                 else
                     StorageButtonNamesTEMP[i] = "Remove";
             }
-
-            int j = 0;
-            int a = 0;
-            foreach (string ButtonName in StorageButtonNamesTEMP)
+                
+                int j = 0;
+                int a = 0;
+                foreach (string ButtonName in StorageButtonNamesTEMP)
             {
                 StorageButtonNamesTEMP[a] = "remove";
                 a++;
@@ -232,17 +235,20 @@ namespace TerminalGamepad.GUILoader
                     j++;
                 }
             }
-            StorageButtonNames = new string[j];
-            for (int i = 0; i < StorageButtonNamesTEMP.Length; i++)
+                StorageButtonNames = new string[j];
+                for (int i = 0; i < StorageButtonNamesTEMP.Length; i++)
             {
                 if (StorageButtonNamesTEMP[i].ToLower() != "remove")
                 {
                     StorageButtonNames[i] = StorageButtonNamesTEMP[i];
                 }
             }
+            }
 
-            BestiaryButtonNames = new string[TApi.Terminal.scannedEnemyIDs.Count];
-            for (int i = 0; i < TApi.Terminal.scannedEnemyIDs.Count; i++)
+            if (isOnBestiaryMenu)
+            { 
+                BestiaryButtonNames = new string[TApi.Terminal.scannedEnemyIDs.Count];
+                for (int i = 0; i < TApi.Terminal.scannedEnemyIDs.Count; i++)
             {
                 if (TApi.Terminal.scannedEnemyIDs.Count <= 0)
                 {
@@ -250,60 +256,73 @@ namespace TerminalGamepad.GUILoader
                 }
                 BestiaryButtonNames[i] = TApi.Terminal.enemyFiles[TApi.Terminal.scannedEnemyIDs[i]].creatureName;
             }
+            }
 
-            LogsButtonNames = new string[TApi.Terminal.unlockedStoryLogs.Count];
-            for (int i = 0; i < TApi.Terminal.unlockedStoryLogs.Count; i++)
+            if (isOnLogsMenu)
+            {
+                LogsButtonNames = new string[TApi.Terminal.unlockedStoryLogs.Count];
+                for (int i = 0; i < TApi.Terminal.unlockedStoryLogs.Count; i++)
             {
                 if (TApi.Terminal.unlockedStoryLogs.Count <= 0)
                     break;
                 LogsButtonNames[i] = TApi.Terminal.logEntryFiles[TApi.Terminal.unlockedStoryLogs[i]].creatureName;
             }
-
-            DecorButtonNames = new string[TApi.Terminal.ShipDecorSelection.Count];
-            for (int i = 0; i < TApi.Terminal.ShipDecorSelection.Count; i++)
-            {
-                if (DecorButtonNames[i] != TApi.Terminal.ShipDecorSelection[i].creatureName)
-                    DecorButtonNames[i] = TApi.Terminal.ShipDecorSelection[i].creatureName;
             }
 
-            PlayersName = new string[StartOfRound.Instance.mapScreen.radarTargets.Count + 1];
-            for (int i = 0; i < StartOfRound.Instance.mapScreen.radarTargets.Count + 1; i++)
+            if (isOnDecorMenu)
             {
-                if (i == 0)
-                    PlayersName[i] = "On/Of";
-                else
-                    PlayersName[i] = StartOfRound.Instance.mapScreen.radarTargets[i - 1].name;
-            }
-
-            RadarsNameTEMP = new string[StartOfRound.Instance.mapScreen.radarTargets.Count];
-            for (int i = 0; i < StartOfRound.Instance.mapScreen.radarTargets.Count; i++)
-            {
-                if (StartOfRound.Instance.mapScreen.radarTargets[i].isNonPlayer)
+                DecorButtonNames = new string[TApi.Terminal.ShipDecorSelection.Count];
+                for (int i = 0; i < TApi.Terminal.ShipDecorSelection.Count; i++)
                 {
-                    RadarsNameTEMP[i] = StartOfRound.Instance.mapScreen.radarTargets[i].name;
-                }
-                else
-                    RadarsNameTEMP[i] = "Remove";
-            }
-
-            int q = 0;
-            int e = 0;
-            foreach (string ButtonName in RadarsNameTEMP)
-            {
-                RadarsNameTEMP[q] = "remove";
-                q++;
-                if (ButtonName.ToLower() != "remove")
-                {
-                    RadarsNameTEMP[e] = ButtonName;
-                    e++;
+                    if (DecorButtonNames[i] != TApi.Terminal.ShipDecorSelection[i].creatureName)
+                        DecorButtonNames[i] = TApi.Terminal.ShipDecorSelection[i].creatureName;
                 }
             }
-            RadarsName = new string[e];
-            for (int i = 0; i < RadarsNameTEMP.Length; i++)
+
+            if (isOnMonitorMenu)
             {
-                if (RadarsNameTEMP[i].ToLower() != "remove")
+                PlayersName = new string[StartOfRound.Instance.mapScreen.radarTargets.Count + 1];
+                for (int i = 0; i < StartOfRound.Instance.mapScreen.radarTargets.Count + 1; i++)
                 {
-                    RadarsName[i] = RadarsNameTEMP[i];
+                    if (i == 0)
+                        PlayersName[i] = "On/Of";
+                    else
+                        PlayersName[i] = StartOfRound.Instance.mapScreen.radarTargets[i - 1].name;
+                }
+            }
+
+            if (isOnFlashMenu || isOnPingMenu)
+            {
+                RadarsNameTEMP = new string[StartOfRound.Instance.mapScreen.radarTargets.Count];
+                for (int i = 0; i < StartOfRound.Instance.mapScreen.radarTargets.Count; i++)
+                {
+                    if (StartOfRound.Instance.mapScreen.radarTargets[i].isNonPlayer)
+                    {
+                        RadarsNameTEMP[i] = StartOfRound.Instance.mapScreen.radarTargets[i].name;
+                    }
+                    else
+                        RadarsNameTEMP[i] = "Remove";
+                }
+
+                int q = 0;
+                int e = 0;
+                foreach (string ButtonName in RadarsNameTEMP)
+                {
+                    RadarsNameTEMP[q] = "remove";
+                    q++;
+                    if (ButtonName.ToLower() != "remove")
+                    {
+                        RadarsNameTEMP[e] = ButtonName;
+                        e++;
+                    }
+                }
+                RadarsName = new string[e];
+                for (int i = 0; i < RadarsNameTEMP.Length; i++)
+                {
+                    if (RadarsNameTEMP[i].ToLower() != "remove")
+                    {
+                        RadarsName[i] = RadarsNameTEMP[i];
+                    }
                 }
             }
 
@@ -385,7 +404,6 @@ namespace TerminalGamepad.GUILoader
                 if (ButtonNames.Length <= 0 || ButtonNames == null)
                 {
                     ButtonNames = EmptyButtonNames;
-                    MenuBool(false, false, false, false, false, false, false, false, false, false, false, false, false, false, false);
                 }
                 DrawButtons();
             }
