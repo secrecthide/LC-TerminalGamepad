@@ -42,7 +42,7 @@
     </Reference>
     <Reference Include="LethalCompanyInputUtils, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\..\..\Games\Lethal.Company.v47\BepInEx\plugins\Rune580-LethalCompany_InputUtils\LethalCompanyInputUtils\LethalCompanyInputUtils.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\Games\Lethal.Company.v47\BepInEx\plugins\Rune580-LethalCompany_InputUtils-0.6.3\plugins\LethalCompanyInputUtils\LethalCompanyInputUtils.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />

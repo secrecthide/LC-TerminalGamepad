@@ -14,7 +14,7 @@ namespace TerminalGamepad
     {
         private const string GUID = "Secrecthide.TerminalGamepad";
         private const string Name = "TerminalGamepad";
-        private const string Version = "1.0.0";
+        private const string Version = "1.0.9";
 
         private readonly Harmony harmony = new Harmony(GUID);
         private static ModBase instance;
@@ -28,7 +28,7 @@ namespace TerminalGamepad
             Logger.LogInfo("TermialGamepad has launched successfully! ENJOY :)");
             Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly());
 
-            TerminalStarting += OnTerminalBeginUsing;
+            TerminalWaking += OnTerminalBeginUsing;
         }
 
         private void OnTerminalBeginUsing(object sender, TerminalEventArgs e)
