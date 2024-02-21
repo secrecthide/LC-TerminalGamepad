@@ -21,7 +21,7 @@
 
   + Add commands from other mods to show up in the panel.
 
-  + Change rows and columns to any number you love.
+  + Change rows and columns count to any number you love.
 
 
 # Controls (Keyboard / Controller)
