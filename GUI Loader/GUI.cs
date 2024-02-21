@@ -1,4 +1,7 @@
-﻿using BepInEx.Logging;
+﻿using System;
+using System.Data;
+using System.Globalization;
+using System.Linq;
 using UnityEngine;
 using TApi = TerminalApi.TerminalApi;
 using static TerminalApi.Events.Events;
@@ -10,6 +13,7 @@ namespace TerminalGamepad.GUILoader
     internal class TerminalGUI : MonoBehaviour
     {
         private string[] ButtonNames;
+        private static string[] MainButtonNamesTEMP;
         private string[] StoreButtonNames;
         private string[] MoonsButtonNames;
         private string[] BestiaryButtonNames;
@@ -25,11 +29,9 @@ namespace TerminalGamepad.GUILoader
         private string[] PlayersNameTEMP;
         private string[] CodesButtonNames;
 
-
-        private string[] MainButtonNames = { "Store", "Moons", "Scan", "Monitors", "Ping", "Flash", "Codes", "Bestiary", "Logs", "Upgrades", "Storage", "Decor"};
+        private static string[] MainButtonNames = { "Store", "Moons", "Scan", "Monitors", "Ping", "Flash", "Codes", "Bestiary", "Logs", "Upgrades", "Storage", "Decor"};
         private string[] ConfirmButtonNames = { "Confirm", "Deny", "Info" };
         private string[] InfoButtonNames = { "Continue", "Go Back" };
-        private string[] ReturnButtonNames = { "Return" };
         private string[] EmptyButtonNames = { "Return" };
 
         private string tmp;
@@ -38,6 +40,8 @@ namespace TerminalGamepad.GUILoader
         private int ItemAmount = 1;
         private int tempItemAmount;
         private int Page = 1;
+        private int Rows = 2;  // Left and Right
+        private int Columns = 8;  // Up and Down
         private int Limit = 16;
         private int ButtonIndex = 16;
 
@@ -46,21 +50,22 @@ namespace TerminalGamepad.GUILoader
         private float MenuWidth;
         private float MenuHeight;
         private float ButtonX;
-        private float BetweenSpace;  // Space Between MenuX And ButtonX
-        private float ButtonY1;
-        private float ButtonY2;
+        private float BetweenSpaceX;  // Space Between MenuX And ButtonX
+        private float BetweenSpaceY;  // Space Between MenuY And ButtonY
+        private float ButtonY;
         private float ButtonWidth;
         private float ButtonHeight;
 
-        private GUIStyle boxStyle;
-        private GUIStyle buttonStyle;
-        private GUIStyle hoverbuttonStyle;
-        private GUIStyle normalbuttonStyle;
-        private GUIStyle textFieldStyle;
+        private static GUIStyle boxStyle;
+        private static GUIStyle buttonStyle;
+        private static GUIStyle hoverbuttonStyle;
+        private static GUIStyle normalbuttonStyle;
+        private static GUIStyle textFieldStyle;
 
         private bool isUiVisible = false;
         private bool isOnTerminal = false;
         private bool isStylesLoaded = false;
+        private bool justHasBeenLoaded = true;
 
         private bool isOnMainMenu = true;
         private bool isOnStoreMenu = false;
@@ -68,7 +73,6 @@ namespace TerminalGamepad.GUILoader
         private bool isOnInfoMenu = false;
         private bool isOnMoonsMenu = false;
         private bool isOnBestiaryMenu = false;
-        private bool isOnReturnMenu = false;
         private bool isOnLogsMenu = false;
         private bool isOnStorageMenu = false;
         private bool isOnFlashMenu = false;
@@ -83,11 +87,13 @@ namespace TerminalGamepad.GUILoader
 
         private void Start()
         {
+            MainButtonNamesTEMP = MainButtonNames;
             ButtonNames = MainButtonNames;
             TerminalEvents();
+            UpdateMainButtonNames();
         }
 
-        void Update()
+        private void Update()
         {
             if (myCount < ButtonNames.Length)
             {
@@ -97,7 +103,7 @@ namespace TerminalGamepad.GUILoader
                 {
                     if (!TApi.GetTerminalInput().Contains(ButtonNames[myCount].ToLower()))
                     {
-                        if (!isOnInfoMenu && !isOnReturnMenu)
+                        if (!isOnInfoMenu)
                         {
                             if (isOnStoreMenu && !isOnConfirmMenu && !isOnInfoMenu)
                             {
@@ -168,21 +174,29 @@ namespace TerminalGamepad.GUILoader
         }
         private void MakeGUIFitsScreen()
         {
+            Rows = ModBase.Rows.Value;
+            Columns = ModBase.Columns.Value;
+
             MenuX = Screen.width * 0.17f;
             MenuY = Screen.height * 0.59f;
             MenuWidth = Screen.width * 0.66f;
             MenuHeight = Screen.height * 0.41f;
 
-            ButtonX = Screen.width * 0.081f;
-            BetweenSpace = Screen.width * 0.0078f;
-            ButtonY1 = Screen.height * 0.0232f;
-            ButtonY2 = Screen.height * 0.212f;
-            ButtonWidth = Screen.width * 0.078f;
-            ButtonHeight = Screen.height * 0.18f;
+            ButtonX = Screen.width * 0.651f;
+            ButtonY = Screen.height * 0.388f;
+
+            if (Columns % 2 == 0)
+                BetweenSpaceX = Screen.width * 0.005f;
+            else
+                BetweenSpaceX = Screen.width * 0.0078f;
+
+            BetweenSpaceY = Screen.height * 0.013f;
+            ButtonWidth = (Screen.width * 0.643f) / Columns;
+            ButtonHeight = (Screen.height * 0.36f) / Rows;
         }
         private void LoadButtonsInfo()
         {
-            if (isOnStoreMenu)
+            if (isOnStoreMenu || justHasBeenLoaded)
             {
                 StoreButtonNames = new string[TApi.Terminal.buyableItemsList.Length];
                 for (int i = 0; i < TApi.Terminal.buyableItemsList.Length; i++)
@@ -191,7 +205,7 @@ namespace TerminalGamepad.GUILoader
                 }
             }
 
-            if (isOnMoonsMenu)
+            if (isOnMoonsMenu || justHasBeenLoaded)
             {
                 MoonsButtonNames = new string[TApi.Terminal.moonsCatalogueList.Length + 1];
                 for (int i = 0; i < MoonsButtonNames.Length; i++)
@@ -203,7 +217,7 @@ namespace TerminalGamepad.GUILoader
                 }
             }
 
-            if (isOnUpgradesMenu)
+            if (isOnUpgradesMenu || justHasBeenLoaded)
             {
                 UpgradeButtonNamesTEMP = new string[StartOfRound.Instance.unlockablesList.unlockables.Count];
                 for (int i = 0; i < StartOfRound.Instance.unlockablesList.unlockables.Count; i++)
@@ -238,7 +252,7 @@ namespace TerminalGamepad.GUILoader
                 }
             }
 
-            if (isOnStorageMenu)
+            if (isOnStorageMenu || justHasBeenLoaded)
             {
                 StorageButtonNamesTEMP = new string[StartOfRound.Instance.unlockablesList.unlockables.Count];
                 for (int i = 0; i < StartOfRound.Instance.unlockablesList.unlockables.Count; i++)
@@ -271,7 +285,7 @@ namespace TerminalGamepad.GUILoader
             }
             }
 
-            if (isOnBestiaryMenu)
+            if (isOnBestiaryMenu || justHasBeenLoaded)
             { 
                 BestiaryButtonNames = new string[TApi.Terminal.scannedEnemyIDs.Count];
                 for (int i = 0; i < TApi.Terminal.scannedEnemyIDs.Count; i++)
@@ -284,7 +298,7 @@ namespace TerminalGamepad.GUILoader
             }
             }
 
-            if (isOnLogsMenu)
+            if (isOnLogsMenu || justHasBeenLoaded)
             {
                 LogsButtonNames = new string[TApi.Terminal.unlockedStoryLogs.Count];
                 for (int i = 0; i < TApi.Terminal.unlockedStoryLogs.Count; i++)
@@ -295,7 +309,7 @@ namespace TerminalGamepad.GUILoader
             }
             }
 
-            if (isOnDecorMenu)
+            if (isOnDecorMenu || justHasBeenLoaded)
             {
                 DecorButtonNames = new string[TApi.Terminal.ShipDecorSelection.Count];
                 for (int i = 0; i < TApi.Terminal.ShipDecorSelection.Count; i++)
@@ -305,7 +319,7 @@ namespace TerminalGamepad.GUILoader
                 }
             }
 
-            if (isOnMonitorMenu)
+            if (isOnMonitorMenu || justHasBeenLoaded)
             {
                 PlayersNameTEMP = new string[StartOfRound.Instance.allPlayerScripts.Length];
                 for (int i = 0; i < PlayersNameTEMP.Length; i++)
@@ -338,7 +352,7 @@ namespace TerminalGamepad.GUILoader
                 }
             }
 
-            if (isOnFlashMenu || isOnPingMenu)
+            if (isOnFlashMenu || isOnPingMenu || justHasBeenLoaded)
             {
                 RadarsNameTEMP = new string[StartOfRound.Instance.mapScreen.radarTargets.Count];
                 for (int i = 0; i < StartOfRound.Instance.mapScreen.radarTargets.Count; i++)
@@ -387,6 +401,42 @@ namespace TerminalGamepad.GUILoader
             }
             else if (!StartOfRound.Instance.shipHasLanded)
                 CodesButtonNames = new string[0];
+
+            if (justHasBeenLoaded)
+                justHasBeenLoaded = false;
+        }
+
+        public static void UpdateTextColor()
+        {
+            textFieldStyle.normal.textColor = ReadColor(ModBase.AmountButtonTextColor.Value);
+            boxStyle.normal.textColor = ReadColor(ModBase.BoxTextColor.Value);
+            normalbuttonStyle.normal.textColor = ReadColor(ModBase.ButtonTextColor.Value);
+            hoverbuttonStyle.normal.textColor = ReadColor(ModBase.HighlightedButtonTextColor.Value);
+        }
+        public static void UpdateMainButtonNames()
+        {
+            string[] tmp1 = MainButtonNamesTEMP;
+            string[] tmp2 = ReadText(ModBase.CustomCommads.Value);
+            MainButtonNames = new string[tmp1.Length + tmp2.Length];
+
+            for (int i = 0; i < tmp1.Length; i++)
+            {
+                MainButtonNames[i] = tmp1[i];
+            }
+            for (int i = 0; i < tmp2.Length; i++)
+            {
+                MainButtonNames[i + tmp1.Length] = tmp2[i];
+            }
+        }
+        private static Color32 ReadColor(string ColorText)
+        {
+            var spiltColor = ColorText.Split(new char[] {',',' ', '"'}, StringSplitOptions.RemoveEmptyEntries).Select(x => byte.Parse(x.Trim(), CultureInfo.InvariantCulture)).ToArray();
+            return new Color32(spiltColor[0], spiltColor[1], spiltColor[2], spiltColor[3]);
+        }
+        private static string[] ReadText(string Text)
+        {
+            var spiltText = Text.Split(new char[] { ',', '"'}, StringSplitOptions.RemoveEmptyEntries);
+            return spiltText;
         }
 
         private void OnGUI()
@@ -396,12 +446,12 @@ namespace TerminalGamepad.GUILoader
 
             if (isUiVisible && isOnTerminal)
             {
-                GUI.backgroundColor = new Color32(0, 0, 15, 130);
+                GUI.backgroundColor = ReadColor(ModBase.BoxBackgroundColor.Value);
                 GUI.Box(new Rect(MenuX, MenuY, MenuWidth, MenuHeight), "TerminalGamepad", boxStyle);
 
                 if (isOnStoreMenu && !isOnConfirmMenu)
                 {
-                    GUI.backgroundColor = new Color32(0, 0, 50, 255);
+                    GUI.backgroundColor = ReadColor(ModBase.AmountBoxbackgroundColor.Value);
                     GUI.TextField(new Rect(MenuX + (Screen.width * 0.006f), MenuY - 20, 65, 20), "Amount: " + ItemAmount, textFieldStyle);
                 }
 
@@ -418,10 +468,10 @@ namespace TerminalGamepad.GUILoader
                 if (isOnUpgradesMenu && !isOnConfirmMenu && !isOnInfoMenu)
                     ButtonNames = UpgradeButtonNames;
 
-                if (isOnBestiaryMenu && !isOnReturnMenu)
+                if (isOnBestiaryMenu)
                     ButtonNames = BestiaryButtonNames;
 
-                if (isOnLogsMenu && !isOnReturnMenu)
+                if (isOnLogsMenu)
                     ButtonNames = LogsButtonNames;
 
                 if (isOnStorageMenu)
@@ -445,9 +495,6 @@ namespace TerminalGamepad.GUILoader
                 if (isOnInfoMenu)
                     ButtonNames = InfoButtonNames;
 
-                if (isOnReturnMenu)
-                    ButtonNames = ReturnButtonNames;
-
                 if (ButtonNames.Length <= 0 || ButtonNames == null)
                 {
                     ButtonNames = EmptyButtonNames;
@@ -458,6 +505,9 @@ namespace TerminalGamepad.GUILoader
         private void DrawButtons()
         {
             MakeGUIFitsScreen();
+            Limit = Rows * Columns;
+            int CurrentDrawingRow = 1;
+
             if (myCount > (Limit * Page) - 1)
             {
                 Page++;
@@ -469,22 +519,21 @@ namespace TerminalGamepad.GUILoader
             for (int i = 0; i < ButtonNames.Length; i++)
             {
                 ButtonIndex = i - (Limit * (Page - 1));
+                CurrentDrawingRow = ButtonIndex / Columns;
                 if (i == myCount)
                 {
-                    GUI.backgroundColor = new Color32(0, 0, 50, 150);
+                    GUI.backgroundColor = ReadColor(ModBase.HighlightedButtonColor.Value);
                     buttonStyle = hoverbuttonStyle;
                 }
                 else
                 {
-                    GUI.backgroundColor = new Color32(0, 0, 20, 150);
+                    GUI.backgroundColor = ReadColor(ModBase.ButtonsColor.Value);
                     buttonStyle = normalbuttonStyle;
                 }
                 if (ButtonIndex >= 0)
                 {
-                    if (ButtonIndex < Limit / 2)
-                        GUI.Button(new Rect(MenuX + BetweenSpace + ButtonIndex * ButtonX, MenuY + ButtonY1, ButtonWidth, ButtonHeight), ButtonNames[i], buttonStyle);
-                    else if (ButtonIndex < Limit)
-                        GUI.Button(new Rect(MenuX + BetweenSpace + (ButtonIndex - 8) * ButtonX, MenuY + ButtonY2, ButtonWidth, ButtonHeight), ButtonNames[i], buttonStyle);
+                    if (ButtonIndex < Limit)//                                                                                                                        between space
+                        GUI.Button(new Rect(MenuX + BetweenSpaceX + (ButtonIndex - (Columns * CurrentDrawingRow)) * (ButtonX / Columns), MenuY + (MenuHeight / (Rows + BetweenSpaceY)) + (CurrentDrawingRow * (ButtonY / Rows)), ButtonWidth, ButtonHeight), ButtonNames[i], buttonStyle);
                 }
             }
         }
@@ -499,27 +548,27 @@ namespace TerminalGamepad.GUILoader
             normalbuttonStyle = new GUIStyle(GUI.skin.button);
             textFieldStyle = new GUIStyle(GUI.skin.button);
 
-            hoverbuttonStyle.normal.textColor = new Color32(36, 255, 0, 255);
+            hoverbuttonStyle.normal.textColor = ReadColor(ModBase.HighlightedButtonTextColor.Value);
             hoverbuttonStyle.normal.background = background;
             hoverbuttonStyle.fontSize = 16;
             hoverbuttonStyle.fontStyle = FontStyle.Bold;
             hoverbuttonStyle.normal.background.hideFlags = HideFlags.HideAndDontSave;
 
-            normalbuttonStyle.normal.textColor = new Color32(20, 142, 0, 255);
+            normalbuttonStyle.normal.textColor = ReadColor(ModBase.ButtonTextColor.Value);
             normalbuttonStyle.normal.background = background;
             normalbuttonStyle.fontSize = 14;
             normalbuttonStyle.fontStyle = FontStyle.Normal;
             normalbuttonStyle.normal.background.hideFlags = HideFlags.HideAndDontSave;
 
-            boxStyle.normal.textColor = new Color32(30, 255, 0, 255);
+            boxStyle.normal.textColor = ReadColor(ModBase.BoxTextColor.Value);
             boxStyle.normal.background = background;
             boxStyle.fontSize = 10;
             boxStyle.fontStyle = FontStyle.Normal;
             boxStyle.normal.background.hideFlags = HideFlags.HideAndDontSave;
 
-            textFieldStyle.normal.textColor = new Color32(24, 203, 0, 255);
+            textFieldStyle.normal.textColor = ReadColor(ModBase.AmountButtonTextColor.Value);
             textFieldStyle.normal.background = background;
-            textFieldStyle.fontSize = 10;
+            textFieldStyle.fontSize = 9;
             textFieldStyle.fontStyle = FontStyle.Bold;
             textFieldStyle.normal.background.hideFlags = HideFlags.HideAndDontSave;
         }
@@ -534,7 +583,7 @@ namespace TerminalGamepad.GUILoader
             background.SetPixels(pix);
             background.Apply();
         }
-        private void MenuBool(bool Main, bool Store, bool Confirm, bool Info, bool Moons, bool Bestiary, bool Back, bool Logs, bool Storage, bool Flash, bool Pings, bool Monitors, bool Codes, bool Decor, bool Upgrades)
+        private void MenuBool(bool Main, bool Store, bool Confirm, bool Info, bool Moons, bool Bestiary, bool UNUSED, bool Logs, bool Storage, bool Flash, bool Pings, bool Monitors, bool Codes, bool Decor, bool Upgrades)
         {
             isOnMainMenu = Main;
             isOnStoreMenu = Store;
@@ -627,14 +676,7 @@ namespace TerminalGamepad.GUILoader
 
         private void ShowHideKeyboard(InputAction.CallbackContext context)
         {
-            if (!isUiVisible)
-            {
-                isUiVisible = true;
-            }
-            else
-            {
-                isUiVisible = false;
-            }
+            isUiVisible = !isUiVisible;
         }
         private void Subbmit(InputAction.CallbackContext context)
         {
@@ -810,7 +852,7 @@ namespace TerminalGamepad.GUILoader
                     TApi.SetTerminalInput("help");
                 }
 
-                if ((isOnStoreMenu && !isOnConfirmMenu && !isOnInfoMenu) || (isOnMoonsMenu && !isOnConfirmMenu && !isOnInfoMenu) || (isOnBestiaryMenu && !isOnReturnMenu) || (isOnLogsMenu && !isOnReturnMenu) || isOnStorageMenu || isOnFlashMenu || isOnPingMenu || isOnMonitorMenu || isOnCodesMenu || (isOnDecorMenu && !isOnConfirmMenu) || (isOnUpgradesMenu && !isOnConfirmMenu && !isOnInfoMenu))
+                if ((isOnStoreMenu && !isOnConfirmMenu && !isOnInfoMenu) || (isOnMoonsMenu && !isOnConfirmMenu && !isOnInfoMenu) || isOnBestiaryMenu || isOnLogsMenu || isOnStorageMenu || isOnFlashMenu || isOnPingMenu || isOnMonitorMenu || isOnCodesMenu || (isOnDecorMenu && !isOnConfirmMenu) || (isOnUpgradesMenu && !isOnConfirmMenu && !isOnInfoMenu))
                 {
                     MenuBool(true, false, false, false, false, false, false, false, false, false, false, false, false, false, false);
                     TApi.SetTerminalInput("help");
@@ -839,14 +881,6 @@ namespace TerminalGamepad.GUILoader
                     else if (isOnUpgradesMenu)
                         TApi.SetTerminalInput("upgrades");
                 }
-                if (isOnReturnMenu)
-                {
-                    MenuBool(false, false, false, false, false, isOnBestiaryMenu, false, isOnLogsMenu, false, false, false, false, false, false, false);
-                    if (isOnBestiaryMenu)
-                        TApi.SetTerminalInput("bestiary");
-                    else
-                        TApi.SetTerminalInput("sigurd");
-                }
                 TApi.Terminal.OnSubmit();
             }
             if (!isOnMonitorMenu && !isOnPingMenu && !isOnFlashMenu)
@@ -858,21 +892,15 @@ namespace TerminalGamepad.GUILoader
 
         private void GoDown(InputAction.CallbackContext context)
         {
-            if (isUiVisible && myCount + 8 <= (Limit * Page) - 1)
-            {
-                myCount += 8;
-                if (myCount > ButtonNames.Length - 1)
-                    myCount -= 8;
-            }
+            myCount += Columns;
+            if (myCount > ButtonNames.Length - 1)
+                myCount -= Columns;
         }
         private void GoUp(InputAction.CallbackContext context)
         {
-            if (isUiVisible && myCount - 8 >= (Limit * (Page - 1)))
-            {
-                myCount -= 8;
-                if (myCount < 0)
-                    myCount += 8;
-            }
+            myCount -= Columns;
+            if (myCount < 0)
+                myCount += Columns;
         }
         private void GoRight(InputAction.CallbackContext context)
         {
@@ -917,6 +945,18 @@ namespace TerminalGamepad.GUILoader
         [InputAction("<Keyboard>/leftCtrl", Name = "ShowKeyboard", GamepadPath = "<Gamepad>/buttonNorth")]
         public InputAction ShowKeyboardKey { get; set; }
 
+        [InputAction("<Keyboard>/enter", Name = "Subbmit", GamepadPath = "<Gamepad>/buttonSouth")]
+        public InputAction Subbmit { get; set; }
+
+        [InputAction("<Keyboard>/alt", Name = "Return", GamepadPath = "<Gamepad>/buttonEast")]
+        public InputAction Return { get; set; }
+
+        [InputAction("<Keyboard>/e", Name = "PlusAmount", GamepadPath = "<Gamepad>/rightShoulder")]
+        public InputAction PlusAmount { get; set; }
+
+        [InputAction("<Keyboard>/q", Name = "MinusAmount", GamepadPath = "<Gamepad>/leftShoulder")]
+        public InputAction MinusAmount { get; set; }
+
         [InputAction("<Keyboard>/leftArrow", Name = "leftArrow", GamepadPath = "<Gamepad>/dpad/left")]
         public InputAction LeftArrow { get; set; }
 
@@ -928,17 +968,5 @@ namespace TerminalGamepad.GUILoader
 
         [InputAction("<Keyboard>/downArrow", Name = "downArrow", GamepadPath = "<Gamepad>/dpad/down")]
         public InputAction DownArrow { get; set; }
-
-        [InputAction("<Keyboard>/e", Name = "PlusAmount", GamepadPath = "<Gamepad>/rightShoulder")]
-        public InputAction PlusAmount { get; set; }
-
-        [InputAction("<Keyboard>/q", Name = "MinusAmount", GamepadPath = "<Gamepad>/leftShoulder")]
-        public InputAction MinusAmount { get; set; }
-
-        [InputAction("<Keyboard>/enter", Name = "Subbmit", GamepadPath = "<Gamepad>/buttonSouth")]
-        public InputAction Subbmit { get; set; }
-
-        [InputAction("<Keyboard>/alt", Name = "Return", GamepadPath = "<Gamepad>/buttonEast")]
-        public InputAction Return { get; set; }
     }
 }
