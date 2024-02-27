@@ -1,35 +1,36 @@
-﻿using BepInEx.Logging;
+﻿using System;
+using System.Data;
+using System.Globalization;
+using System.Linq;
 using UnityEngine;
 using TApi = TerminalApi.TerminalApi;
 using static TerminalApi.Events.Events;
 using LethalCompanyInputUtils.Api;
 using UnityEngine.InputSystem;
+using System.Collections.Generic;
+using BepInEx.Logging;
+using System.Collections;
 
 namespace TerminalGamepad.GUILoader
 {
     internal class TerminalGUI : MonoBehaviour
     {
         private string[] ButtonNames;
+        private static string[] MainButtonNamesTEMP;
         private string[] StoreButtonNames;
         private string[] MoonsButtonNames;
         private string[] BestiaryButtonNames;
         private string[] LogsButtonNames;
         private string[] DecorButtonNames;
         private string[] UpgradeButtonNames;
-        private string[] UpgradeButtonNamesTEMP;
         private string[] RadarsName;
-        private string[] RadarsNameTEMP;
         private string[] StorageButtonNames;
-        private string[] StorageButtonNamesTEMP;
         private string[] PlayersName;
-        private string[] PlayersNameTEMP;
         private string[] CodesButtonNames;
 
-
-        private string[] MainButtonNames = { "Store", "Moons", "Scan", "Monitors", "Ping", "Flash", "Codes", "Bestiary", "Logs", "Upgrades", "Storage", "Decor"};
+        private static string[] MainButtonNames = { "Store", "Moons", "Scan", "Monitors", "Ping", "Flash", "Codes", "Bestiary", "Logs", "Upgrades", "Storage", "Decor" };
         private string[] ConfirmButtonNames = { "Confirm", "Deny", "Info" };
         private string[] InfoButtonNames = { "Continue", "Go Back" };
-        private string[] ReturnButtonNames = { "Return" };
         private string[] EmptyButtonNames = { "Return" };
 
         private string tmp;
@@ -38,6 +39,8 @@ namespace TerminalGamepad.GUILoader
         private int ItemAmount = 1;
         private int tempItemAmount;
         private int Page = 1;
+        private int Rows = 2;  // Left and Right
+        private int Columns = 8;  // Up and Down
         private int Limit = 16;
         private int ButtonIndex = 16;
 
@@ -46,21 +49,22 @@ namespace TerminalGamepad.GUILoader
         private float MenuWidth;
         private float MenuHeight;
         private float ButtonX;
-        private float BetweenSpace;  // Space Between MenuX And ButtonX
-        private float ButtonY1;
-        private float ButtonY2;
+        private float BetweenSpaceX;  // Space Between MenuX And ButtonX
+        private float BetweenSpaceY;  // Space Between MenuY And ButtonY
+        private float ButtonY;
         private float ButtonWidth;
         private float ButtonHeight;
 
-        private GUIStyle boxStyle;
-        private GUIStyle buttonStyle;
-        private GUIStyle hoverbuttonStyle;
-        private GUIStyle normalbuttonStyle;
-        private GUIStyle textFieldStyle;
+        private static GUIStyle boxStyle;
+        private static GUIStyle buttonStyle;
+        private static GUIStyle hoverbuttonStyle;
+        private static GUIStyle normalbuttonStyle;
+        private static GUIStyle textFieldStyle;
 
         private bool isUiVisible = false;
-        private bool isOnTerminal = false;
         private bool isStylesLoaded = false;
+        private bool justHasBeenLoaded = true;
+        private bool boxVisible = true;
 
         private bool isOnMainMenu = true;
         private bool isOnStoreMenu = false;
@@ -68,7 +72,6 @@ namespace TerminalGamepad.GUILoader
         private bool isOnInfoMenu = false;
         private bool isOnMoonsMenu = false;
         private bool isOnBestiaryMenu = false;
-        private bool isOnReturnMenu = false;
         private bool isOnLogsMenu = false;
         private bool isOnStorageMenu = false;
         private bool isOnFlashMenu = false;
@@ -80,300 +83,258 @@ namespace TerminalGamepad.GUILoader
 
         internal KeyBinds keybinds;
         private Texture2D background;
+        private ManualLogSource mls;
 
         private void Start()
         {
+            MainButtonNamesTEMP = MainButtonNames;
             ButtonNames = MainButtonNames;
             TerminalEvents();
+            UpdateMainButtonNames();
+            mls = BepInEx.Logging.Logger.CreateLogSource("TerminalGamepad");
+            DrawBoxForOneSecond();
         }
 
-        void Update()
+        private void Update()
         {
-            if (myCount < ButtonNames.Length)
+            LoadButtonsInfo();
+
+            if (StartOfRound.Instance.localPlayerController.inTerminalMenu && isUiVisible)
             {
-                LoadButtonsInfo();
-
-                if (isOnTerminal && isUiVisible)
+                if (!TApi.GetTerminalInput().Contains(ButtonNames[myCount].ToLower()))
                 {
-                    if (!TApi.GetTerminalInput().Contains(ButtonNames[myCount].ToLower()))
+                    if (!isOnInfoMenu)
                     {
-                        if (!isOnInfoMenu && !isOnReturnMenu)
+                        if (isOnStoreMenu && !isOnConfirmMenu)
                         {
-                            if (isOnStoreMenu && !isOnConfirmMenu && !isOnInfoMenu)
-                            {
-                                tmp = StoreButtonNames[myCount];
-                            }
-                            if (isOnMoonsMenu && !isOnConfirmMenu && !isOnInfoMenu)
-                            {
-                                tmp = MoonsButtonNames[myCount];
-                            }
-                            if (isOnUpgradesMenu && !isOnConfirmMenu && !isOnInfoMenu)
-                            {
-                                tmp = UpgradeButtonNames[myCount];
-                            }
-                            TApi.SetTerminalInput(ButtonNames[myCount].ToLower());
+                            tmp = StoreButtonNames[myCount];
                         }
-                        if (ButtonNames[myCount].ToLower() == "logs")
+                        if (isOnMoonsMenu && !isOnConfirmMenu)
                         {
-                            TApi.SetTerminalInput("sigurd");
+                            tmp = MoonsButtonNames[myCount];
                         }
-                        if (ButtonNames[myCount].ToLower() == "flash")
-                            TApi.SetTerminalInput("blind");
+                        if (isOnUpgradesMenu && !isOnConfirmMenu)
+                        {
+                            tmp = UpgradeButtonNames[myCount];
+                        }
+                        TApi.SetTerminalInput(ButtonNames[myCount].ToLower());
+                    }
 
-                        if (ButtonNames[myCount].ToLower() == "go back")
-                        {
-                            if (isOnStoreMenu)
-                                TApi.SetTerminalInput("store");
-                            else if (isOnMoonsMenu)
-                                TApi.SetTerminalInput("moons");
-                            else if (isOnUpgradesMenu)
-                                TApi.SetTerminalInput("upgrades");
-                        }
-                        if (ButtonNames[myCount].ToLower() == "return")
-                        {
-                            TApi.SetTerminalInput("help");
-                        }
-                        if (ButtonNames[myCount].ToLower() == "continue")
-                        {
-                            if (isOnStoreMenu)
-                                TApi.SetTerminalInput($"{tmp} {tempItemAmount}");
-                            else if (isOnMoonsMenu || isOnUpgradesMenu)
-                                TApi.SetTerminalInput(tmp);
+                    if (ButtonNames[myCount].ToLower() == "logs")
+                    {
+                        TApi.SetTerminalInput("sigurd");
+                    }
 
-                        }
+                    if (ButtonNames[myCount].ToLower() == "flash")
+                        TApi.SetTerminalInput("blind");
+
+                    if (ButtonNames[myCount].ToLower() == "go back")
+                    {
+                        if (isOnStoreMenu)
+                            TApi.SetTerminalInput("store");
+                        else if (isOnMoonsMenu)
+                            TApi.SetTerminalInput("moons");
+                        else if (isOnUpgradesMenu)
+                            TApi.SetTerminalInput("upgrades");
+                    }
+
+                    if (ButtonNames[myCount].ToLower() == "return")
+                    {
+                        TApi.SetTerminalInput("help");
+                    }
+
+                    if (ButtonNames[myCount].ToLower() == "continue")
+                    {
+                        if (isOnStoreMenu)
+                            TApi.SetTerminalInput($"{tmp} {tempItemAmount}");
+                        else if (isOnMoonsMenu || isOnUpgradesMenu)
+                            TApi.SetTerminalInput(tmp);
                     }
 
                     if (isOnMonitorMenu)
-                        if (ButtonNames[myCount].ToLower() == PlayersName[myCount].ToLower())
-                        {
-                            TApi.SetTerminalInput("switch " + PlayersName[myCount]);
-                        }
-                    if (isOnMonitorMenu)
-                        if (ButtonNames[myCount].ToLower() == "on/of")
+                    {
+                        if (ButtonNames[myCount].ToLower() == "on/off")
                         {
                             TApi.SetTerminalInput("view monitor");
                         }
-
-                    if (isOnStoreMenu && !isOnConfirmMenu && !isOnInfoMenu)
-                    {
-                        if (TApi.GetTerminalInput() != $"{ButtonNames[myCount].ToLower()} {ItemAmount}")
+                        else
                         {
-                            TApi.SetTerminalInput($"{ButtonNames[myCount].ToLower()} {ItemAmount}");
+                            TApi.SetTerminalInput("switch " + PlayersName[myCount]);
                         }
                     }
                 }
+
+                if (isOnStoreMenu && !isOnConfirmMenu && !isOnInfoMenu)
+                {
+                    if (TApi.GetTerminalInput() != $"{ButtonNames[myCount].ToLower()} {ItemAmount}")
+                    {
+                        TApi.SetTerminalInput($"{ButtonNames[myCount].ToLower()} {ItemAmount}");
+                    }
+                }
             }
-            else
-                myCount = ButtonNames.Length - 1;
+            
         }
         private void MakeGUIFitsScreen()
         {
+            Rows = ModBase.Rows.Value;
+            Columns = ModBase.Columns.Value;
+
             MenuX = Screen.width * 0.17f;
             MenuY = Screen.height * 0.59f;
             MenuWidth = Screen.width * 0.66f;
             MenuHeight = Screen.height * 0.41f;
 
-            ButtonX = Screen.width * 0.081f;
-            BetweenSpace = Screen.width * 0.0078f;
-            ButtonY1 = Screen.height * 0.0232f;
-            ButtonY2 = Screen.height * 0.212f;
-            ButtonWidth = Screen.width * 0.078f;
-            ButtonHeight = Screen.height * 0.18f;
+            ButtonX = Screen.width * 0.651f;
+            ButtonY = Screen.height * 0.388f;
+
+            if (Columns % 2 == 0)
+                BetweenSpaceX = Screen.width * 0.005f;
+            else
+                BetweenSpaceX = Screen.width * 0.0078f;
+
+            BetweenSpaceY = Screen.height * 0.013f;
+            ButtonWidth = (Screen.width * 0.63f) / Columns;
+            ButtonHeight = (Screen.height * 0.36f) / Rows;
         }
         private void LoadButtonsInfo()
         {
-            if (isOnStoreMenu)
+            if (isOnStoreMenu || justHasBeenLoaded)
             {
-                StoreButtonNames = new string[TApi.Terminal.buyableItemsList.Length];
-                for (int i = 0; i < TApi.Terminal.buyableItemsList.Length; i++)
-                {
-                    StoreButtonNames[i] = TApi.Terminal.buyableItemsList[i].itemName;
-                }
+                StoreButtonNames = TApi.Terminal.buyableItemsList.Select(item => item.itemName).ToArray();
             }
 
-            if (isOnMoonsMenu)
+            if (isOnMoonsMenu || justHasBeenLoaded)
             {
                 MoonsButtonNames = new string[TApi.Terminal.moonsCatalogueList.Length + 1];
-                for (int i = 0; i < MoonsButtonNames.Length; i++)
+
+                for (int i = 0; i < TApi.Terminal.moonsCatalogueList.Length; i++)
                 {
-                    if (i >= MoonsButtonNames.Length - 1)
-                        MoonsButtonNames[i] = "Company";
-                    else
-                        MoonsButtonNames[i] = TApi.Terminal.moonsCatalogueList[i].PlanetName;
+                    MoonsButtonNames[i] = TApi.Terminal.moonsCatalogueList[i].PlanetName;
                 }
+
+                MoonsButtonNames[MoonsButtonNames.Length - 1] = "Company";
             }
 
-            if (isOnUpgradesMenu)
+            if (isOnUpgradesMenu || justHasBeenLoaded)
             {
-                UpgradeButtonNamesTEMP = new string[StartOfRound.Instance.unlockablesList.unlockables.Count];
-                for (int i = 0; i < StartOfRound.Instance.unlockablesList.unlockables.Count; i++)
+                List<string> upgradeButtonNamesTemp = new List<string>();
+
+                foreach (var unlockable in StartOfRound.Instance.unlockablesList.unlockables)
                 {
-                    if (StartOfRound.Instance.unlockablesList.unlockables[i].alwaysInStock)
+                    if (unlockable.alwaysInStock && !unlockable.alreadyUnlocked && !unlockable.hasBeenUnlockedByPlayer)
                     {
-                        UpgradeButtonNamesTEMP[i] = StartOfRound.Instance.unlockablesList.unlockables[i].unlockableName;
+                        upgradeButtonNamesTemp.Add(unlockable.unlockableName);
+                    }
+                }
+                UpgradeButtonNames = upgradeButtonNamesTemp.ToArray();
+            }
+
+            if (isOnStorageMenu || justHasBeenLoaded)
+            {
+                List<string> storageButtonNamesTemp = new List<string>();
+
+                foreach (var unlockable in StartOfRound.Instance.unlockablesList.unlockables)
+                {
+                    if (unlockable.inStorage)
+                    {
+                        storageButtonNamesTemp.Add(unlockable.unlockableName);
                     }
                     else
-                        UpgradeButtonNamesTEMP[i] = "Remove";
-                }
-
-                int u = 0;
-                int o = 0;
-                foreach (string ButtonName in UpgradeButtonNamesTEMP)
-                {
-                    UpgradeButtonNamesTEMP[u] = "remove";
-                    u++;
-                    if (ButtonName.ToLower() != "remove")
                     {
-                        UpgradeButtonNamesTEMP[o] = ButtonName;
-                        o++;
+                        storageButtonNamesTemp.Add("Remove");
                     }
                 }
-                UpgradeButtonNames = new string[o];
-                for (int i = 0; i < UpgradeButtonNamesTEMP.Length; i++)
-                {
-                    if (UpgradeButtonNamesTEMP[i].ToLower() != "remove")
-                    {
-                        UpgradeButtonNames[i] = UpgradeButtonNamesTEMP[i];
-                    }
-                }
+
+                storageButtonNamesTemp.RemoveAll(buttonName => buttonName.Equals("Remove", StringComparison.OrdinalIgnoreCase));
+
+                StorageButtonNames = storageButtonNamesTemp.ToArray();
             }
 
-            if (isOnStorageMenu)
-            {
-                StorageButtonNamesTEMP = new string[StartOfRound.Instance.unlockablesList.unlockables.Count];
-                for (int i = 0; i < StartOfRound.Instance.unlockablesList.unlockables.Count; i++)
-            {
-                if (StartOfRound.Instance.unlockablesList.unlockables[i].inStorage)
-                    StorageButtonNamesTEMP[i] = StartOfRound.Instance.unlockablesList.unlockables[i].unlockableName;
-                else
-                    StorageButtonNamesTEMP[i] = "Remove";
-            }
-                
-                int j = 0;
-                int a = 0;
-                foreach (string ButtonName in StorageButtonNamesTEMP)
-            {
-                StorageButtonNamesTEMP[a] = "remove";
-                a++;
-                if (ButtonName.ToLower() != "remove")
-                {
-                    StorageButtonNamesTEMP[j] = ButtonName;
-                    j++;
-                }
-            }
-                StorageButtonNames = new string[j];
-                for (int i = 0; i < StorageButtonNamesTEMP.Length; i++)
-            {
-                if (StorageButtonNamesTEMP[i].ToLower() != "remove")
-                {
-                    StorageButtonNames[i] = StorageButtonNamesTEMP[i];
-                }
-            }
-            }
-
-            if (isOnBestiaryMenu)
-            { 
-                BestiaryButtonNames = new string[TApi.Terminal.scannedEnemyIDs.Count];
-                for (int i = 0; i < TApi.Terminal.scannedEnemyIDs.Count; i++)
+            if (isOnBestiaryMenu || justHasBeenLoaded)
             {
                 if (TApi.Terminal.scannedEnemyIDs.Count <= 0)
                 {
-                    break;
+                    BestiaryButtonNames = new string[0];
                 }
-                BestiaryButtonNames[i] = TApi.Terminal.enemyFiles[TApi.Terminal.scannedEnemyIDs[i]].creatureName;
-            }
+                else
+                {
+                    BestiaryButtonNames = new string[TApi.Terminal.scannedEnemyIDs.Count];
+                    for (int i = 0; i < TApi.Terminal.scannedEnemyIDs.Count; i++)
+                    {
+                        BestiaryButtonNames[i] = TApi.Terminal.enemyFiles[TApi.Terminal.scannedEnemyIDs[i]].creatureName;
+                    }
+                }
             }
 
-            if (isOnLogsMenu)
-            {
-                LogsButtonNames = new string[TApi.Terminal.unlockedStoryLogs.Count];
-                for (int i = 0; i < TApi.Terminal.unlockedStoryLogs.Count; i++)
+            if (isOnLogsMenu || justHasBeenLoaded)
             {
                 if (TApi.Terminal.unlockedStoryLogs.Count <= 0)
-                    break;
-                LogsButtonNames[i] = TApi.Terminal.logEntryFiles[TApi.Terminal.unlockedStoryLogs[i]].creatureName;
-            }
+                {
+                    LogsButtonNames = new string[0];
+                }
+                else
+                {
+                    LogsButtonNames = new string[TApi.Terminal.unlockedStoryLogs.Count];
+                    for (int i = 0; i < TApi.Terminal.unlockedStoryLogs.Count; i++)
+                    {
+                        LogsButtonNames[i] = TApi.Terminal.logEntryFiles[TApi.Terminal.unlockedStoryLogs[i]].creatureName;
+                    }
+                }
             }
 
-            if (isOnDecorMenu)
+            if (isOnDecorMenu || justHasBeenLoaded)
             {
                 DecorButtonNames = new string[TApi.Terminal.ShipDecorSelection.Count];
-                for (int i = 0; i < TApi.Terminal.ShipDecorSelection.Count; i++)
+                for (int i = 0; i < DecorButtonNames.Length; i++)
                 {
-                    if (DecorButtonNames[i] != TApi.Terminal.ShipDecorSelection[i].creatureName)
-                        DecorButtonNames[i] = TApi.Terminal.ShipDecorSelection[i].creatureName;
+                    DecorButtonNames[i] = TApi.Terminal.ShipDecorSelection[i].creatureName;
                 }
             }
 
-            if (isOnMonitorMenu)
+            if (isOnFlashMenu || isOnPingMenu || justHasBeenLoaded)
             {
-                PlayersNameTEMP = new string[StartOfRound.Instance.allPlayerScripts.Length];
-                for (int i = 0; i < PlayersNameTEMP.Length; i++)
+                var radarsNameTemp = new List<string>();
+
+                foreach (var radarTarget in StartOfRound.Instance.mapScreen.radarTargets)
                 {
-                    if (StartOfRound.Instance.allPlayerScripts[i].isPlayerControlled)
-                        PlayersNameTEMP[i] = StartOfRound.Instance.allPlayerScripts[i].playerUsername;
-                    else
-                        PlayersNameTEMP[i] = "Remove";
-                }
-                
-                int c = 0;
-                int z = 0;
-                foreach (string ButtonName in PlayersNameTEMP)
-                {
-                    PlayersNameTEMP[c] = "remove";
-                    c++;
-                    if (ButtonName.ToLower() != "remove")
+                    if (radarTarget.isNonPlayer)
                     {
-                        PlayersNameTEMP[z] = ButtonName;
-                        z++;
+                        radarsNameTemp.Add(radarTarget.name);
                     }
                 }
-                PlayersName = new string[z + 1];
-                for (int i = 0; i < PlayersName.Length; i++)
-                {
-                    if (i == 0)
-                        PlayersName[i] = "On/Of";
-                    else
-                        PlayersName[i] = PlayersNameTEMP[i - 1];                
-                }
+
+                RadarsName = radarsNameTemp.ToArray();
             }
 
-            if (isOnFlashMenu || isOnPingMenu)
+            if (isOnMonitorMenu || justHasBeenLoaded)
             {
-                RadarsNameTEMP = new string[StartOfRound.Instance.mapScreen.radarTargets.Count];
-                for (int i = 0; i < StartOfRound.Instance.mapScreen.radarTargets.Count; i++)
+                var playersNameTemp = new List<string>();
+
+                foreach (var playerScript in StartOfRound.Instance.allPlayerScripts)
                 {
-                    if (StartOfRound.Instance.mapScreen.radarTargets[i].isNonPlayer)
+                    if (playerScript.isPlayerControlled)
                     {
-                        RadarsNameTEMP[i] = StartOfRound.Instance.mapScreen.radarTargets[i].name;
+                        playersNameTemp.Add(playerScript.playerUsername);
                     }
-                    else
-                        RadarsNameTEMP[i] = "Remove";
+                }
+                foreach (var radarTarget in StartOfRound.Instance.mapScreen.radarTargets)
+                {
+                    if (radarTarget.isNonPlayer)
+                    {
+                        playersNameTemp.Add(radarTarget.name);
+                    }
                 }
 
-                int q = 0;
-                int e = 0;
-                foreach (string ButtonName in RadarsNameTEMP)
+                PlayersName = new string[playersNameTemp.Count + 1];
+                PlayersName[0] = "On/Off";
+
+                for (int i = 0; i < playersNameTemp.Count; i++)
                 {
-                    RadarsNameTEMP[q] = "remove";
-                    q++;
-                    if (ButtonName.ToLower() != "remove")
-                    {
-                        RadarsNameTEMP[e] = ButtonName;
-                        e++;
-                    }
-                }
-                RadarsName = new string[e];
-                for (int i = 0; i < RadarsNameTEMP.Length; i++)
-                {
-                    if (RadarsNameTEMP[i].ToLower() != "remove")
-                    {
-                        RadarsName[i] = RadarsNameTEMP[i];
-                    }
+                    PlayersName[i + 1] = playersNameTemp[i];
                 }
             }
 
-            if (StartOfRound.Instance.shipHasLanded && CodesButtonNames.Length == 0)
+            if (!StartOfRound.Instance.inShipPhase)
             {
                 TerminalAccessibleObject[] Codes = UnityEngine.Object.FindObjectsOfType<TerminalAccessibleObject>();
                 if (Codes != null)
@@ -385,23 +346,61 @@ namespace TerminalGamepad.GUILoader
                     }
                 }
             }
-            else if (!StartOfRound.Instance.shipHasLanded)
+            else
                 CodesButtonNames = new string[0];
+
+            if (justHasBeenLoaded)
+                justHasBeenLoaded = false;
+        }
+
+        public static void UpdateTextColor()
+        {
+            textFieldStyle.normal.textColor = ReadColor(ModBase.AmountButtonTextColor.Value);
+            boxStyle.normal.textColor = ReadColor(ModBase.BoxTextColor.Value);
+            normalbuttonStyle.normal.textColor = ReadColor(ModBase.ButtonTextColor.Value);
+            hoverbuttonStyle.normal.textColor = ReadColor(ModBase.HighlightedButtonTextColor.Value);
+        }
+        public static void UpdateMainButtonNames()
+        {
+            string[] tmp1 = MainButtonNamesTEMP;
+            string[] tmp2 = ReadText(ModBase.CustomCommads.Value);
+            MainButtonNames = new string[tmp1.Length + tmp2.Length];
+
+            for (int i = 0; i < tmp1.Length; i++)
+            {
+                MainButtonNames[i] = tmp1[i];
+            }
+            for (int i = 0; i < tmp2.Length; i++)
+            {
+                MainButtonNames[i + tmp1.Length] = tmp2[i];
+            }
+        }
+        private static Color32 ReadColor(string ColorText)
+        {
+            var spiltColor = ColorText.Split(new char[] { ',', ' ', '"' }, StringSplitOptions.RemoveEmptyEntries).Select(x => byte.Parse(x.Trim(), CultureInfo.InvariantCulture)).ToArray();
+            return new Color32(spiltColor[0], spiltColor[1], spiltColor[2], spiltColor[3]);
+        }
+        private static string[] ReadText(string Text)
+        {
+            var spiltText = Text.Split(new char[] { ',', '"' }, StringSplitOptions.RemoveEmptyEntries);
+            return spiltText;
         }
 
         private void OnGUI()
         {
             if (!isStylesLoaded)
                 LoadStyles();
+            if (boxVisible)
+                GUI.Box(new Rect(Screen.width + 100, 0, 30, 30),"test");
 
-            if (isUiVisible && isOnTerminal)
+            if (isUiVisible && StartOfRound.Instance.localPlayerController.inTerminalMenu)
             {
-                GUI.backgroundColor = new Color32(0, 0, 15, 130);
+                GUI.backgroundColor = ReadColor(ModBase.BoxBackgroundColor.Value);
                 GUI.Box(new Rect(MenuX, MenuY, MenuWidth, MenuHeight), "TerminalGamepad", boxStyle);
 
                 if (isOnStoreMenu && !isOnConfirmMenu)
                 {
-                    GUI.backgroundColor = new Color32(0, 0, 50, 255);
+                    GUI.backgroundColor = ReadColor(ModBase.AmountBoxbackgroundColor.Value);
                     GUI.TextField(new Rect(MenuX + (Screen.width * 0.006f), MenuY - 20, 65, 20), "Amount: " + ItemAmount, textFieldStyle);
                 }
 
@@ -418,10 +417,10 @@ namespace TerminalGamepad.GUILoader
                 if (isOnUpgradesMenu && !isOnConfirmMenu && !isOnInfoMenu)
                     ButtonNames = UpgradeButtonNames;
 
-                if (isOnBestiaryMenu && !isOnReturnMenu)
+                if (isOnBestiaryMenu)
                     ButtonNames = BestiaryButtonNames;
 
-                if (isOnLogsMenu && !isOnReturnMenu)
+                if (isOnLogsMenu)
                     ButtonNames = LogsButtonNames;
 
                 if (isOnStorageMenu)
@@ -445,9 +444,6 @@ namespace TerminalGamepad.GUILoader
                 if (isOnInfoMenu)
                     ButtonNames = InfoButtonNames;
 
-                if (isOnReturnMenu)
-                    ButtonNames = ReturnButtonNames;
-
                 if (ButtonNames.Length <= 0 || ButtonNames == null)
                 {
                     ButtonNames = EmptyButtonNames;
@@ -458,6 +454,9 @@ namespace TerminalGamepad.GUILoader
         private void DrawButtons()
         {
             MakeGUIFitsScreen();
+            Limit = Rows * Columns;
+            int CurrentDrawingRow = 1;
+
             if (myCount > (Limit * Page) - 1)
             {
                 Page++;
@@ -469,24 +468,28 @@ namespace TerminalGamepad.GUILoader
             for (int i = 0; i < ButtonNames.Length; i++)
             {
                 ButtonIndex = i - (Limit * (Page - 1));
+                CurrentDrawingRow = ButtonIndex / Columns;
                 if (i == myCount)
                 {
-                    GUI.backgroundColor = new Color32(0, 0, 50, 150);
+                    GUI.backgroundColor = ReadColor(ModBase.HighlightedButtonColor.Value);
                     buttonStyle = hoverbuttonStyle;
                 }
                 else
                 {
-                    GUI.backgroundColor = new Color32(0, 0, 20, 150);
+                    GUI.backgroundColor = ReadColor(ModBase.ButtonsColor.Value);
                     buttonStyle = normalbuttonStyle;
                 }
                 if (ButtonIndex >= 0)
                 {
-                    if (ButtonIndex < Limit / 2)
-                        GUI.Button(new Rect(MenuX + BetweenSpace + ButtonIndex * ButtonX, MenuY + ButtonY1, ButtonWidth, ButtonHeight), ButtonNames[i], buttonStyle);
-                    else if (ButtonIndex < Limit)
-                        GUI.Button(new Rect(MenuX + BetweenSpace + (ButtonIndex - 8) * ButtonX, MenuY + ButtonY2, ButtonWidth, ButtonHeight), ButtonNames[i], buttonStyle);
+                    if (ButtonIndex < Limit)//                                                                                                                        between space
+                        GUI.Button(new Rect(MenuX + BetweenSpaceX + (ButtonIndex - (Columns * CurrentDrawingRow)) * (ButtonX / Columns), MenuY + (MenuHeight / (Rows + BetweenSpaceY)) + (CurrentDrawingRow * (ButtonY / Rows)), ButtonWidth, ButtonHeight), ButtonNames[i], buttonStyle);
                 }
             }
+        }
+        IEnumerator DrawBoxForOneSecond()
+        {
+            yield return new WaitForSeconds(1f);
+            boxVisible = false;
         }
 
         private void LoadStyles()
@@ -499,27 +502,27 @@ namespace TerminalGamepad.GUILoader
             normalbuttonStyle = new GUIStyle(GUI.skin.button);
             textFieldStyle = new GUIStyle(GUI.skin.button);
 
-            hoverbuttonStyle.normal.textColor = new Color32(36, 255, 0, 255);
+            hoverbuttonStyle.normal.textColor = ReadColor(ModBase.HighlightedButtonTextColor.Value);
             hoverbuttonStyle.normal.background = background;
             hoverbuttonStyle.fontSize = 16;
             hoverbuttonStyle.fontStyle = FontStyle.Bold;
             hoverbuttonStyle.normal.background.hideFlags = HideFlags.HideAndDontSave;
 
-            normalbuttonStyle.normal.textColor = new Color32(20, 142, 0, 255);
+            normalbuttonStyle.normal.textColor = ReadColor(ModBase.ButtonTextColor.Value);
             normalbuttonStyle.normal.background = background;
             normalbuttonStyle.fontSize = 14;
             normalbuttonStyle.fontStyle = FontStyle.Normal;
             normalbuttonStyle.normal.background.hideFlags = HideFlags.HideAndDontSave;
 
-            boxStyle.normal.textColor = new Color32(30, 255, 0, 255);
+            boxStyle.normal.textColor = ReadColor(ModBase.BoxTextColor.Value);
             boxStyle.normal.background = background;
             boxStyle.fontSize = 10;
             boxStyle.fontStyle = FontStyle.Normal;
             boxStyle.normal.background.hideFlags = HideFlags.HideAndDontSave;
 
-            textFieldStyle.normal.textColor = new Color32(24, 203, 0, 255);
+            textFieldStyle.normal.textColor = ReadColor(ModBase.AmountButtonTextColor.Value);
             textFieldStyle.normal.background = background;
-            textFieldStyle.fontSize = 10;
+            textFieldStyle.fontSize = 9;
             textFieldStyle.fontStyle = FontStyle.Bold;
             textFieldStyle.normal.background.hideFlags = HideFlags.HideAndDontSave;
         }
@@ -534,7 +537,7 @@ namespace TerminalGamepad.GUILoader
             background.SetPixels(pix);
             background.Apply();
         }
-        private void MenuBool(bool Main, bool Store, bool Confirm, bool Info, bool Moons, bool Bestiary, bool Back, bool Logs, bool Storage, bool Flash, bool Pings, bool Monitors, bool Codes, bool Decor, bool Upgrades)
+        private void MenuBool(bool Main, bool Store, bool Confirm, bool Info, bool Moons, bool Bestiary, bool UNUSED, bool Logs, bool Storage, bool Flash, bool Pings, bool Monitors, bool Codes, bool Decor, bool Upgrades)
         {
             isOnMainMenu = Main;
             isOnStoreMenu = Store;
@@ -585,8 +588,6 @@ namespace TerminalGamepad.GUILoader
 
             keybinds.Return.Enable();
             keybinds.Return.performed += Return;
-
-            isOnTerminal = true;
         }
         private void OnTerminalExited(object sender, TerminalEventArgs e)
         {
@@ -617,7 +618,6 @@ namespace TerminalGamepad.GUILoader
             keybinds.Return.Disable();
             keybinds.Return.performed -= Return;
 
-            isOnTerminal = false;
             myCount = 0;
             ItemAmount = 1;
             Page = 1;
@@ -627,14 +627,7 @@ namespace TerminalGamepad.GUILoader
 
         private void ShowHideKeyboard(InputAction.CallbackContext context)
         {
-            if (!isUiVisible)
-            {
-                isUiVisible = true;
-            }
-            else
-            {
-                isUiVisible = false;
-            }
+            isUiVisible = !isUiVisible;
         }
         private void Subbmit(InputAction.CallbackContext context)
         {
@@ -644,9 +637,9 @@ namespace TerminalGamepad.GUILoader
                 Page = 1;
             }
 
-            if (myCount < ButtonNames.Length)
+            if (myCount < ButtonNames.Length - 1)
             {
-                if (isOnTerminal)
+                if (StartOfRound.Instance.localPlayerController.inTerminalMenu)
                 {
                     if (TApi.GetTerminalInput().ToLower() == "help")
                     {
@@ -655,102 +648,114 @@ namespace TerminalGamepad.GUILoader
                     }
                     if (ButtonNames != EmptyButtonNames)
                     {
-                        if (TApi.GetTerminalInput().ToLower() == "store")
+                        bool skip = false;
+                        if (isOnMainMenu)
                         {
-                            MenuBool(false, true, false, false, false, false, false, false, false, false, false, false, false, false, false);
-                        }
-                        if (TApi.GetTerminalInput().ToLower() == "moons")
-                        {
-                            MenuBool(false, false, false, false, true, false, false, false, false, false, false, false, false, false, false);
-                        }
-                        if (TApi.GetTerminalInput().ToLower() == "bestiary")
-                        {
-                            MenuBool(false, false, false, false, false, true, false, false, false, false, false, false, false, false, false);
-                        }
-                        if (TApi.GetTerminalInput().ToLower() == "sigurd")
-                        {
-                            MenuBool(false, false, false, false, false, false, false, true, false, false, false, false, false, false, false);
-                        }
-                        if (TApi.GetTerminalInput().ToLower() == "storage")
-                        {
-                            MenuBool(false, false, false, false, false, false, false, true, true, false, false, false, false, false, false);
-                        }
-                        if (TApi.GetTerminalInput().ToLower() == "blind")
-                        {
-                            MenuBool(false, false, false, false, false, false, false, false, false, true, false, false, false, false, false);
-                        }
-                        if (TApi.GetTerminalInput().ToLower() == "ping")
-                        {
-                            MenuBool(false, false, false, false, false, false, false, false, false, false, true, false, false, false, false);
-                        }
-                        if (TApi.GetTerminalInput().ToLower() == "monitors")
-                        {
-                            MenuBool(false, false, false, false, false, false, false, false, false, false, false, true, false, false, false);
-                        }
-                        if (TApi.GetTerminalInput().ToLower() == "codes")
-                        {
-                            MenuBool(false, false, false, false, false, false, false, false, false, false, false, true, true, false, false);
-                        }
-                        if (TApi.GetTerminalInput().ToLower() == "decor")
-                        {
-                            MenuBool(false, false, false, false, false, false, false, false, false, false, false, true, false, true, false);
-                        }
-                        if (TApi.GetTerminalInput().ToLower() == "upgrades")
-                        {
-                            MenuBool(false, false, false, false, false, false, false, false, false, false, false, false, false, false, true);
+                            if (TApi.GetTerminalInput().ToLower() == "store")
+                            {
+                                MenuBool(false, true, false, false, false, false, false, false, false, false, false, false, false, false, false);
+                            }
+                            if (TApi.GetTerminalInput().ToLower() == "moons")
+                            {
+                                MenuBool(false, false, false, false, true, false, false, false, false, false, false, false, false, false, false);
+                            }
+                            if (TApi.GetTerminalInput().ToLower() == "bestiary")
+                            {
+                                MenuBool(false, false, false, false, false, true, false, false, false, false, false, false, false, false, false);
+                            }
+                            if (TApi.GetTerminalInput().ToLower() == "sigurd")
+                            {
+                                MenuBool(false, false, false, false, false, false, false, true, false, false, false, false, false, false, false);
+                            }
+                            if (TApi.GetTerminalInput().ToLower() == "storage")
+                            {
+                                MenuBool(false, false, false, false, false, false, false, false, true, false, false, false, false, false, false);
+                            }
+                            if (TApi.GetTerminalInput().ToLower() == "blind")
+                            {
+                                MenuBool(false, false, false, false, false, false, false, false, false, true, false, false, false, false, false);
+                            }
+                            if (TApi.GetTerminalInput().ToLower() == "ping")
+                            {
+                                MenuBool(false, false, false, false, false, false, false, false, false, false, true, false, false, false, false);
+                            }
+                            if (TApi.GetTerminalInput().ToLower() == "monitors")
+                            {
+                                MenuBool(false, false, false, false, false, false, false, false, false, false, false, true, false, false, false);
+                            }
+                            if (TApi.GetTerminalInput().ToLower() == "codes")
+                            {
+                                MenuBool(false, false, false, false, false, false, false, false, false, false, false, false, true, false, false);
+                            }
+                            if (TApi.GetTerminalInput().ToLower() == "decor")
+                            {
+                                MenuBool(false, false, false, false, false, false, false, false, false, false, false, false, false, true, false);
+                            }
+                            if (TApi.GetTerminalInput().ToLower() == "upgrades")
+                            {
+                                MenuBool(false, false, false, false, false, false, false, false, false, false, false, false, false, false, true);
+                            }
+                            skip = true;
                         }
 
-                        if (isOnStoreMenu)
+                        if (isOnFlashMenu && !skip)
+                            if (ButtonNames[myCount].ToLower() == RadarsName[myCount].ToLower())
+                            {
+                                TApi.SetTerminalInput("flash " + RadarsName[myCount]);
+                            }
+
+                        if (isOnPingMenu && !skip)
+                            if (ButtonNames[myCount].ToLower() == RadarsName[myCount].ToLower())
+                            {
+                                TApi.SetTerminalInput("ping " + RadarsName[myCount]);
+                            }
+
+                        if (isOnStoreMenu && !skip)
                             if (ButtonNames[myCount].ToLower() == StoreButtonNames[myCount].ToLower())
                             {
                                 tempItemAmount = ItemAmount;
                                 MenuBool(false, true, true, false, false, false, false, false, false, false, false, false, false, false, false);
                             }
 
-                        if (isOnDecorMenu)
+                        if (isOnDecorMenu && !skip)
                             if (ButtonNames[myCount].ToLower() == DecorButtonNames[myCount].ToLower())
                             {
                                 MenuBool(false, false, true, false, false, false, false, false, false, false, false, false, false, true, false);
                             }
 
-                        if (isOnMoonsMenu)
+                        if (isOnMoonsMenu && !skip)
                             if (ButtonNames[myCount].ToLower() == MoonsButtonNames[myCount].ToLower())
                             {
                                 MenuBool(false, false, true, false, true, false, false, false, false, false, false, false, false, false, false);
                             }
 
-                        if (isOnUpgradesMenu)
+                        if (isOnUpgradesMenu && !skip)
                             if (ButtonNames[myCount].ToLower() == UpgradeButtonNames[myCount].ToLower())
                             {
                                 MenuBool(false, false, true, false, false, false, false, false, false, false, false, false, false, false, true);
                             }
 
-                        if (isOnBestiaryMenu && BestiaryButtonNames.Length >= 1)
-                            if (ButtonNames[myCount].ToLower() == BestiaryButtonNames[myCount].ToLower())
-                            {
-                                MenuBool(false, false, false, false, false, true, true, false, false, false, false, false, false, false, false);
-                            }
-
-                        if (isOnLogsMenu)
+                        if (isOnLogsMenu && !skip)
                             if (ButtonNames[myCount].ToLower() == LogsButtonNames[myCount].ToLower())
                             {
                                 MenuBool(false, false, false, false, false, false, true, true, false, false, false, false, false, false, false);
                             }
 
-                        if (isOnConfirmMenu)
+                        if (isOnConfirmMenu && !skip)
+                        {
                             if (TApi.GetTerminalInput().ToLower() == "info")
                             {
                                 if (!isOnDecorMenu)
                                     MenuBool(false, isOnStoreMenu, false, true, isOnMoonsMenu, false, false, false, false, false, false, false, false, false, isOnUpgradesMenu);
                             }
-
-                        if (isOnConfirmMenu)
-                            if (TApi.GetTerminalInput().ToLower() == "deny" || TApi.GetTerminalInput().ToLower() == "confirm")
+                            else if (TApi.GetTerminalInput().ToLower() == "deny" || TApi.GetTerminalInput().ToLower() == "confirm")
                             {
                                 MenuBool(false, isOnStoreMenu, false, false, isOnMoonsMenu, false, false, false, false, false, false, false, false, isOnDecorMenu, isOnUpgradesMenu);
                             }
 
-                        if (isOnInfoMenu)
+                        }
+
+                        if (isOnInfoMenu && !skip)
                             if (TApi.GetTerminalInput().ToLower() == "info")
                             {
                                 if (isOnDecorMenu)
@@ -766,19 +771,7 @@ namespace TerminalGamepad.GUILoader
                                 }
                             }
 
-                        if (isOnFlashMenu)
-                            if (ButtonNames[myCount].ToLower() == RadarsName[myCount].ToLower())
-                            {
-                                TApi.SetTerminalInput("flash " + RadarsName[myCount]);
-                            }
-
-                        if (isOnPingMenu)
-                            if (ButtonNames[myCount].ToLower() == RadarsName[myCount].ToLower())
-                            {
-                                TApi.SetTerminalInput("ping " + RadarsName[myCount]);
-                            }
-
-                        if (isOnInfoMenu)
+                        if (isOnInfoMenu && !skip)
                         {
                             if (ButtonNames[myCount].ToLower() == "go back")
                             {
@@ -810,7 +803,7 @@ namespace TerminalGamepad.GUILoader
                     TApi.SetTerminalInput("help");
                 }
 
-                if ((isOnStoreMenu && !isOnConfirmMenu && !isOnInfoMenu) || (isOnMoonsMenu && !isOnConfirmMenu && !isOnInfoMenu) || (isOnBestiaryMenu && !isOnReturnMenu) || (isOnLogsMenu && !isOnReturnMenu) || isOnStorageMenu || isOnFlashMenu || isOnPingMenu || isOnMonitorMenu || isOnCodesMenu || (isOnDecorMenu && !isOnConfirmMenu) || (isOnUpgradesMenu && !isOnConfirmMenu && !isOnInfoMenu))
+                if ((isOnStoreMenu && !isOnConfirmMenu && !isOnInfoMenu) || (isOnMoonsMenu && !isOnConfirmMenu && !isOnInfoMenu) || isOnBestiaryMenu || isOnLogsMenu || isOnStorageMenu || isOnFlashMenu || isOnPingMenu || isOnMonitorMenu || isOnCodesMenu || (isOnDecorMenu && !isOnConfirmMenu) || (isOnUpgradesMenu && !isOnConfirmMenu && !isOnInfoMenu))
                 {
                     MenuBool(true, false, false, false, false, false, false, false, false, false, false, false, false, false, false);
                     TApi.SetTerminalInput("help");
@@ -839,14 +832,6 @@ namespace TerminalGamepad.GUILoader
                     else if (isOnUpgradesMenu)
                         TApi.SetTerminalInput("upgrades");
                 }
-                if (isOnReturnMenu)
-                {
-                    MenuBool(false, false, false, false, false, isOnBestiaryMenu, false, isOnLogsMenu, false, false, false, false, false, false, false);
-                    if (isOnBestiaryMenu)
-                        TApi.SetTerminalInput("bestiary");
-                    else
-                        TApi.SetTerminalInput("sigurd");
-                }
                 TApi.Terminal.OnSubmit();
             }
             if (!isOnMonitorMenu && !isOnPingMenu && !isOnFlashMenu)
@@ -858,21 +843,15 @@ namespace TerminalGamepad.GUILoader
 
         private void GoDown(InputAction.CallbackContext context)
         {
-            if (isUiVisible && myCount + 8 <= (Limit * Page) - 1)
-            {
-                myCount += 8;
-                if (myCount > ButtonNames.Length - 1)
-                    myCount -= 8;
-            }
+            myCount += Columns;
+            if (myCount > ButtonNames.Length - 1)
+                myCount -= Columns;
         }
         private void GoUp(InputAction.CallbackContext context)
         {
-            if (isUiVisible && myCount - 8 >= (Limit * (Page - 1)))
-            {
-                myCount -= 8;
-                if (myCount < 0)
-                    myCount += 8;
-            }
+            myCount -= Columns;
+            if (myCount < 0)
+                myCount += Columns;
         }
         private void GoRight(InputAction.CallbackContext context)
         {
@@ -895,7 +874,7 @@ namespace TerminalGamepad.GUILoader
 
         private void PlusAmount(InputAction.CallbackContext context)
         {
-            if (isOnTerminal && isOnStoreMenu && isUiVisible && !isOnConfirmMenu)
+            if (StartOfRound.Instance.localPlayerController.inTerminalMenu && isOnStoreMenu && isUiVisible && !isOnConfirmMenu)
             {
                 ItemAmount++;
                 if (ItemAmount > 12)
@@ -904,7 +883,7 @@ namespace TerminalGamepad.GUILoader
         }
         private void MinusAmount(InputAction.CallbackContext context)
         {
-            if (isOnTerminal && isOnStoreMenu && isUiVisible && !isOnConfirmMenu)
+            if (StartOfRound.Instance.localPlayerController.inTerminalMenu && isOnStoreMenu && isUiVisible && !isOnConfirmMenu)
             {
                 ItemAmount--;
                 if (ItemAmount < 1)
@@ -917,17 +896,11 @@ namespace TerminalGamepad.GUILoader
         [InputAction("<Keyboard>/leftCtrl", Name = "ShowKeyboard", GamepadPath = "<Gamepad>/buttonNorth")]
         public InputAction ShowKeyboardKey { get; set; }
 
-        [InputAction("<Keyboard>/leftArrow", Name = "leftArrow", GamepadPath = "<Gamepad>/dpad/left")]
-        public InputAction LeftArrow { get; set; }
+        [InputAction("<Keyboard>/enter", Name = "Subbmit", GamepadPath = "<Gamepad>/buttonSouth")]
+        public InputAction Subbmit { get; set; }
 
-        [InputAction("<Keyboard>/rightArrow", Name = "rightArrow", GamepadPath = "<Gamepad>/dpad/right")]
-        public InputAction RightArrow { get; set; }
-
-        [InputAction("<Keyboard>/upArrow", Name = "upArrow", GamepadPath = "<Gamepad>/dpad/up")]
-        public InputAction UpArrow { get; set; }
-
-        [InputAction("<Keyboard>/downArrow", Name = "downArrow", GamepadPath = "<Gamepad>/dpad/down")]
-        public InputAction DownArrow { get; set; }
+        [InputAction("<Keyboard>/alt", Name = "Return", GamepadPath = "<Gamepad>/buttonEast")]
+        public InputAction Return { get; set; }
 
         [InputAction("<Keyboard>/e", Name = "PlusAmount", GamepadPath = "<Gamepad>/rightShoulder")]
         public InputAction PlusAmount { get; set; }
@@ -935,10 +908,16 @@ namespace TerminalGamepad.GUILoader
         [InputAction("<Keyboard>/q", Name = "MinusAmount", GamepadPath = "<Gamepad>/leftShoulder")]
         public InputAction MinusAmount { get; set; }
 
-        [InputAction("<Keyboard>/enter", Name = "Subbmit", GamepadPath = "<Gamepad>/buttonSouth")]
-        public InputAction Subbmit { get; set; }
+        [InputAction("<Keyboard>/upArrow", Name = "upArrow", GamepadPath = "<Gamepad>/dpad/up")]
+        public InputAction UpArrow { get; set; }
 
-        [InputAction("<Keyboard>/alt", Name = "Return", GamepadPath = "<Gamepad>/buttonEast")]
-        public InputAction Return { get; set; }
+        [InputAction("<Keyboard>/downArrow", Name = "downArrow", GamepadPath = "<Gamepad>/dpad/down")]
+        public InputAction DownArrow { get; set; }
+
+        [InputAction("<Keyboard>/leftArrow", Name = "leftArrow", GamepadPath = "<Gamepad>/dpad/left")]
+        public InputAction LeftArrow { get; set; }
+
+        [InputAction("<Keyboard>/rightArrow", Name = "rightArrow", GamepadPath = "<Gamepad>/dpad/right")]
+        public InputAction RightArrow { get; set; }
     }
 }
