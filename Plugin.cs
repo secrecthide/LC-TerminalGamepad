@@ -9,7 +9,7 @@ using BepInEx.Configuration;
 namespace TerminalGamepad
 {
     [BepInPlugin(GUID, Name, Version)]
-    [BepInDependency("atomic.terminalapi", MinimumDependencyVersion: "1.5.2")]
+    [BepInDependency("atomic.terminalapi", MinimumDependencyVersion: "1.5.0")]
     [BepInDependency("com.rune580.LethalCompanyInputUtils", MinimumDependencyVersion: "0.6.3")]
     public class ModBase : BaseUnityPlugin
     {
