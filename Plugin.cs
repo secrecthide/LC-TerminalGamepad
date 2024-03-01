@@ -5,6 +5,7 @@ using System.Reflection;
 using TerminalGamepad.GUILoader;
 using UnityEngine;
 using BepInEx.Configuration;
+using TerminalGamepad.Data;
 
 namespace TerminalGamepad
 {
@@ -15,7 +16,7 @@ namespace TerminalGamepad
     {
         private const string GUID = "Secrecthide.TerminalGamepad";
         private const string Name = "TerminalGamepad";
-        private const string Version = "1.2.0";
+        private const string Version = "1.2.3";
 
         private readonly Harmony harmony = new Harmony(GUID);
         private static ModBase instance;
@@ -36,7 +37,7 @@ namespace TerminalGamepad
         public static ConfigEntry<string> CustomCommads;
         public static ConfigEntry<int> Rows;
         public static ConfigEntry<int> Columns;
-
+        public static ConfigEntry<PagesScrollType> PagesMode;
 
         private void Awake()
         {
@@ -46,8 +47,13 @@ namespace TerminalGamepad
 
             TerminalStarted += OnTerminalBeginUsing;
 
-            Rows = Config.Bind("Customization", "Rows", 2, "Adjust number of Rows)");
+            Rows = Config.Bind("Customization", "Rows", 2, "Adjust number of Rows");
             Columns = Config.Bind("Customization", "Columns", 8, "Adjust number of columns");
+            PagesMode = Config.Bind("Customization", "Pages mode", PagesScrollType.Dynamic, "The way to switch between pages.\n\n" + "Options:\n" +
+                                    "[Dynamic]: It checks the bigger count of rows and columns, then chooses automatically between LeftRight and UpDown.\n" +
+                                    "[UpDown]: It will change between pages by going up or down.\n" +
+                                    "[LeftRight]: It will change between pages by going left or right.\n" +
+                                    "[Both]: It is a combination of UpDown and LeftRight.");
             CustomCommads = Config.Bind("Customization", "Custom Commands", "", "You can add other modds commands to shows up in the panel (e.g. \"door, light\")");
 
             BoxBackgroundColor = Config.Bind("Background Colors", "Box backcground color", "0, 0, 15, 130", "The color of the Box background");
@@ -60,11 +66,13 @@ namespace TerminalGamepad
             HighlightedButtonTextColor = Config.Bind("Text Colors", "Highlighted button text color", "36, 255, 0, 255", "The color of the highlighted button text");
             AmountButtonTextColor = Config.Bind("Text Colors", "Amount box text color", "24, 203, 0, 255", "The color of the amount box text");
 
+
             BoxTextColor.SettingChanged += (s,e) => TerminalGUI.UpdateTextColor();
             ButtonTextColor.SettingChanged += (s,e) => TerminalGUI.UpdateTextColor();
             HighlightedButtonTextColor.SettingChanged += (s,e) => TerminalGUI.UpdateTextColor();
             AmountButtonTextColor.SettingChanged += (s,e) => TerminalGUI.UpdateTextColor();
             CustomCommads.SettingChanged += (s,e) => TerminalGUI.UpdateMainButtonNames();
+            PagesMode.SettingChanged += (s,e) => TerminalGUI.UpdatePagesMode();
         }
 
         private void OnTerminalBeginUsing(object sender, TerminalEventArgs e)

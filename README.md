@@ -17,7 +17,9 @@
 
   + Add commands from other mods to show up in the panel.
 
-  + Change rows and columns count to any number you love.
+  + Change columns and rows count to any number you love.
+
+  + Choose between four options to customize the pages navigation way.
 
 
 # Controls (Keyboard / Controller)
@@ -62,6 +64,11 @@
 # Notes
 + Transmit command is still being developed.
 + Please report any bugs [here](https://discord.com/channels/1168655651455639582/1201370625428705450)
+
+## 1.2.3
++ You can now switch between the navigation ways for the previous and next page.
++ Instead of showing the mod name in the panel, it will show now the current page / total of pages.
++ Bugs fix.
 
 ## 1.2.0
 + GUI loads 10x time faster.
