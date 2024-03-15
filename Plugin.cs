@@ -12,11 +12,12 @@ namespace TerminalGamepad
     [BepInPlugin(GUID, Name, Version)]
     [BepInDependency("atomic.terminalapi", MinimumDependencyVersion: "1.5.0")]
     [BepInDependency("com.rune580.LethalCompanyInputUtils", MinimumDependencyVersion: "0.6.3")]
-    public class ModBase : BaseUnityPlugin
+    [BepInDependency("com.malco.lethalcompany.moreshipupgrades", BepInDependency.DependencyFlags.SoftDependency)]
+    class ModBase : BaseUnityPlugin
     {
         private const string GUID = "Secrecthide.TerminalGamepad";
         private const string Name = "TerminalGamepad";
-        private const string Version = "1.2.3";
+        private const string Version = "1.3.0";
 
         private readonly Harmony harmony = new Harmony(GUID);
         private static ModBase instance;

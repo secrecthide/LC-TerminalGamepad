@@ -10,16 +10,16 @@ using UnityEngine.InputSystem;
 using System.Collections.Generic;
 using BepInEx.Logging;
 using System.Collections;
+using TerminalGamepad.Data;
 
 namespace TerminalGamepad.GUILoader
 {
     internal class TerminalGUI : MonoBehaviour
-
     {
         private string[] ButtonNames;
-        private static string[] MainButtonNamesTEMP;
+        public static string[] MainButtonNamesTEMP;
         private string[] StoreButtonNames;
-        private string[] MoonsButtonNames;
+        public static string[] MoonsButtonNames;
         private string[] BestiaryButtonNames;
         private string[] LogsButtonNames;
         private string[] DecorButtonNames;
@@ -29,10 +29,14 @@ namespace TerminalGamepad.GUILoader
         private string[] PlayersName;
         private string[] CodesButtonNames;
 
-        private static string[] MainButtonNames = { "Store", "Moons", "Scan", "Monitors", "Ping", "Flash", "Codes", "Bestiary", "Logs", "Upgrades", "Storage", "Decor" };
+        public static string[] MainButtonNames = { "Store", "Moons", "Scan", "Monitors", "Ping", "Flash", "Transmit", "Codes", "Bestiary", "Logs", "Upgrades", "Storage", "Decor" };
         private string[] ConfirmButtonNames = { "Confirm", "Deny", "Info" };
         private string[] InfoButtonNames = { "Continue", "Go Back" };
         private string[] EmptyButtonNames = { "Return" };
+        private string[] Keyboard = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "0",
+                                      "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P",
+                                      "A", "S", "D", "F", "G", "H", "J", "K", "L", "SPACE",
+                                      "Backspace", "Z", "X", "C", "V", "B", "N", "M", "!", "Submit"};
 
         private string tmp;
 
@@ -73,20 +77,8 @@ namespace TerminalGamepad.GUILoader
         public static bool upDown = false;
         public static bool dynamic = false;
 
-        private bool isOnMainMenu = true;
-        private bool isOnStoreMenu = false;
-        private bool isOnConfirmMenu = false;
-        private bool isOnInfoMenu = false;
-        private bool isOnMoonsMenu = false;
-        private bool isOnBestiaryMenu = false;
-        private bool isOnLogsMenu = false;
-        private bool isOnStorageMenu = false;
-        private bool isOnFlashMenu = false;
-        private bool isOnPingMenu = false;
-        private bool isOnMonitorMenu = false;
-        private bool isOnCodesMenu = false;
-        private bool isOnDecorMenu = false;
-        private bool isOnUpgradesMenu = false;
+        public static Pages currentPage;
+        public static SubPages currentSubPage;
 
         internal KeyBinds keybinds;
         private ManualLogSource mls;
@@ -97,21 +89,23 @@ namespace TerminalGamepad.GUILoader
             ButtonNames = MainButtonNames;
             mls = BepInEx.Logging.Logger.CreateLogSource("TerminalGamepad");
 
+            LGU.AddLguButton();
             TerminalEvents();
             UpdateMainButtonNames();
             UpdatePagesMode();
             DrawBoxForOneSecond();
+
         }
 
         private void Update()
         {
-            LoadButtonsInfo();
-
             try { if (ButtonNames[myCount] != null){ } }
             catch (IndexOutOfRangeException) { myCount = ButtonNames.Length - 1; myCountInedx = myCount - (Limit * (Page - 1)); }
 
             if (StartOfRound.Instance.localPlayerController.inTerminalMenu && isUiVisible)
             {
+                LoadButtonsInfo();
+
                 for (int i = 1; i <= Rows; i++)
                 {
                     if (myCountInedx <= Columns * i && myCountInedx >= Columns * (i - 1))
@@ -119,21 +113,25 @@ namespace TerminalGamepad.GUILoader
                         currentRow = i; 
                     }
                 }
-                if (!TApi.GetTerminalInput().Contains(ButtonNames[myCount].ToLower()))
+                if (TApi.GetTerminalInput().ToLower() != ButtonNames[myCount].ToLower())
                 {
-                    if (!isOnInfoMenu)
+                    if (currentSubPage != SubPages.Info && currentPage != Pages.Bruteforce && currentPage != Pages.Transmit && currentPage != Pages.Lookup)
                     {
-                        if (isOnStoreMenu && !isOnConfirmMenu)
+                        if (currentPage == Pages.Store && currentSubPage == SubPages.None)
                         {
                             tmp = StoreButtonNames[myCount];
                         }
-                        if (isOnMoonsMenu && !isOnConfirmMenu)
+                        if (currentPage == Pages.Moons && currentSubPage == SubPages.None)
                         {
                             tmp = MoonsButtonNames[myCount];
                         }
-                        if (isOnUpgradesMenu && !isOnConfirmMenu)
+                        if (currentPage == Pages.Upgrades && currentSubPage == SubPages.None && UpgradeButtonNames.Length > 0)
                         {
                             tmp = UpgradeButtonNames[myCount];
+                        }
+                        if (currentPage == Pages.moreUpgrades && currentSubPage == SubPages.None)
+                        {
+                            tmp = LGU.MoreUpgradesButtonsName[myCount];
                         }
                         TApi.SetTerminalInput(ButtonNames[myCount].ToLower());
                     }
@@ -148,11 +146,11 @@ namespace TerminalGamepad.GUILoader
 
                     if (ButtonNames[myCount].ToLower() == "go back")
                     {
-                        if (isOnStoreMenu)
+                        if (currentPage == Pages.Store)
                             TApi.SetTerminalInput("store");
-                        else if (isOnMoonsMenu)
+                        else if (currentPage == Pages.Moons)
                             TApi.SetTerminalInput("moons");
-                        else if (isOnUpgradesMenu)
+                        else if (currentPage == Pages.Upgrades)
                             TApi.SetTerminalInput("upgrades");
                     }
 
@@ -161,15 +159,34 @@ namespace TerminalGamepad.GUILoader
                         TApi.SetTerminalInput("help");
                     }
 
-                    if (ButtonNames[myCount].ToLower() == "continue")
+                    if (currentPage == Pages.moreUpgrades && currentSubPage == SubPages.None)
                     {
-                        if (isOnStoreMenu)
-                            TApi.SetTerminalInput($"{tmp} {tempItemAmount}");
-                        else if (isOnMoonsMenu || isOnUpgradesMenu)
-                            TApi.SetTerminalInput(tmp);
+                        TApi.SetTerminalInput(LGU.MoreUpgradesButtonsName[myCount] + " info");
                     }
 
-                    if (isOnMonitorMenu)
+                    if (ButtonNames[myCount].ToLower() == "continue")
+                    {
+                        if (currentPage == Pages.Store)
+                            TApi.SetTerminalInput($"{tmp} {tempItemAmount}");
+                        else if (currentPage == Pages.Moons || currentPage == Pages.Upgrades)
+                            TApi.SetTerminalInput(tmp);
+                    }
+                    if (currentSubPage == SubPages.LGUConfirm)
+                    {
+                        if (currentPage == Pages.moreUpgrades)
+                        {
+                            if (ButtonNames[myCount].ToLower() == "confirm")
+                            {
+                                TApi.SetTerminalInput(tmp);
+                            }
+                            else if (ButtonNames[myCount].ToLower() == "deny")
+                            {
+                                TApi.SetTerminalInput("Lategame Store");
+                            }
+                        }
+                    }
+
+                    if (currentPage == Pages.Monitor)
                     {
                         if (ButtonNames[myCount].ToLower() == "on/off")
                         {
@@ -180,14 +197,29 @@ namespace TerminalGamepad.GUILoader
                             TApi.SetTerminalInput("switch " + PlayersName[myCount]);
                         }
                     }
+
+                    if (currentPage == Pages.Demon)
+                    {
+                        TApi.SetTerminalInput("demon " + LGU.DemonsButtonNames[myCount]);
+                    }
                 }
 
-                if (isOnStoreMenu && !isOnConfirmMenu && !isOnInfoMenu)
+                if (currentPage == Pages.Store && currentSubPage == SubPages.None)
                 {
                     if (TApi.GetTerminalInput() != $"{ButtonNames[myCount].ToLower()} {ItemAmount}")
                     {
                         TApi.SetTerminalInput($"{ButtonNames[myCount].ToLower()} {ItemAmount}");
                     }
+                }
+
+                if (currentPage == Pages.Contract && currentSubPage == SubPages.None)
+                {
+                    if (ButtonNames[myCount].ToLower() == "random")
+                        TApi.SetTerminalInput("Contract");
+                    else if (ButtonNames[myCount].ToLower() == "41 experimentation")
+                        TApi.SetTerminalInput("contract experimentation");
+                    else
+                        TApi.SetTerminalInput("contract " + LGU.ContractButtonNames[myCount]);
                 }
             }
             
@@ -237,12 +269,12 @@ namespace TerminalGamepad.GUILoader
         }
         private void LoadButtonsInfo()
         {
-            if (isOnStoreMenu || justHasBeenLoaded)
+            if (currentPage == Pages.Store || justHasBeenLoaded)
             {
                 StoreButtonNames = TApi.Terminal.buyableItemsList.Select(item => item.itemName).ToArray();
             }
 
-            if (isOnMoonsMenu || justHasBeenLoaded)
+            if (currentPage == Pages.Moons || justHasBeenLoaded)
             {
                 MoonsButtonNames = new string[TApi.Terminal.moonsCatalogueList.Length + 1];
 
@@ -254,7 +286,7 @@ namespace TerminalGamepad.GUILoader
                 MoonsButtonNames[MoonsButtonNames.Length - 1] = "Company";
             }
 
-            if (isOnUpgradesMenu || justHasBeenLoaded)
+            if (currentPage == Pages.Upgrades || justHasBeenLoaded)
             {
                 List<string> upgradeButtonNamesTemp = new List<string>();
 
@@ -268,7 +300,7 @@ namespace TerminalGamepad.GUILoader
                 UpgradeButtonNames = upgradeButtonNamesTemp.ToArray();
             }
 
-            if (isOnStorageMenu || justHasBeenLoaded)
+            if (currentPage == Pages.Storage || justHasBeenLoaded)
             {
                 List<string> storageButtonNamesTemp = new List<string>();
 
@@ -283,7 +315,7 @@ namespace TerminalGamepad.GUILoader
                 StorageButtonNames = storageButtonNamesTemp.ToArray();
             }
 
-            if (isOnBestiaryMenu || justHasBeenLoaded)
+            if (currentPage == Pages.Bestiary || justHasBeenLoaded)
             {
                 if (TApi.Terminal.scannedEnemyIDs.Count <= 0)
                 {
@@ -299,7 +331,7 @@ namespace TerminalGamepad.GUILoader
                 }
             }
 
-            if (isOnLogsMenu || justHasBeenLoaded)
+            if (currentPage == Pages.Logs || justHasBeenLoaded)
             {
                 if (TApi.Terminal.unlockedStoryLogs.Count <= 0)
                 {
@@ -315,7 +347,7 @@ namespace TerminalGamepad.GUILoader
                 }
             }
 
-            if (isOnDecorMenu || justHasBeenLoaded)
+            if (currentPage == Pages.Decor || justHasBeenLoaded)
             {
                 DecorButtonNames = new string[TApi.Terminal.ShipDecorSelection.Count];
                 for (int i = 0; i < DecorButtonNames.Length; i++)
@@ -324,7 +356,7 @@ namespace TerminalGamepad.GUILoader
                 }
             }
 
-            if (isOnFlashMenu || isOnPingMenu || justHasBeenLoaded)
+            if (currentPage == Pages.Flash || currentPage == Pages.Ping || justHasBeenLoaded)
             {
                 var radarsNameTemp = new List<string>();
 
@@ -339,7 +371,7 @@ namespace TerminalGamepad.GUILoader
                 RadarsName = radarsNameTemp.ToArray();
             }
 
-            if (isOnMonitorMenu || justHasBeenLoaded)
+            if (currentPage == Pages.Monitor || justHasBeenLoaded)
             {
                 var playersNameTemp = new List<string>();
 
@@ -381,6 +413,9 @@ namespace TerminalGamepad.GUILoader
             }
             else
                 CodesButtonNames = new string[0];
+
+            if (currentPage == Pages.Contract)
+                LGU.ContractMoons();
 
             if (justHasBeenLoaded)
                 justHasBeenLoaded = false;
@@ -463,51 +498,72 @@ namespace TerminalGamepad.GUILoader
                 GUI.backgroundColor = ReadColor(ModBase.BoxBackgroundColor.Value);
                 GUI.Box(new Rect(MenuX, MenuY, MenuWidth, MenuHeight), boxText, boxStyle);
 
-                if (isOnStoreMenu && !isOnConfirmMenu)
+                if (currentPage == Pages.Store && currentSubPage == SubPages.None)
                 {
                     GUI.backgroundColor = ReadColor(ModBase.AmountBoxbackgroundColor.Value);
                     GUI.TextField(new Rect(MenuX + (Screen.width * 0.006f), MenuY - 20, 65, 20), "Amount: " + ItemAmount, textFieldStyle);
                 }
 
                 //drawing menus
-                if (isOnMainMenu)
+                if (currentPage == Pages.Main)
                     ButtonNames = MainButtonNames;
 
-                if (isOnStoreMenu && !isOnConfirmMenu && !isOnInfoMenu)
+                if (currentPage == Pages.Store && currentSubPage == SubPages.None)
                     ButtonNames = StoreButtonNames;
 
-                if (isOnMoonsMenu && !isOnConfirmMenu && !isOnInfoMenu)
+                if (currentPage == Pages.Moons && currentSubPage == SubPages.None)
                     ButtonNames = MoonsButtonNames;
 
-                if (isOnUpgradesMenu && !isOnConfirmMenu && !isOnInfoMenu)
+                if (currentPage == Pages.Upgrades && currentSubPage == SubPages.None)
                     ButtonNames = UpgradeButtonNames;
 
-                if (isOnBestiaryMenu)
+                if (currentPage == Pages.Bestiary)
                     ButtonNames = BestiaryButtonNames;
 
-                if (isOnLogsMenu)
+                if (currentPage == Pages.Logs)
                     ButtonNames = LogsButtonNames;
 
-                if (isOnStorageMenu)
+                if (currentPage == Pages.Storage)
                     ButtonNames = StorageButtonNames;
 
-                if (isOnFlashMenu || isOnPingMenu)
+                if (currentPage == Pages.Flash || currentPage == Pages.Ping)
                     ButtonNames = RadarsName;
 
-                if (isOnMonitorMenu)
+                if (currentPage == Pages.Monitor)
                     ButtonNames = PlayersName;
 
-                if (isOnDecorMenu && !isOnConfirmMenu)
+                if (currentPage == Pages.Decor && currentSubPage == SubPages.None)
                     ButtonNames = DecorButtonNames;
 
-                if (isOnCodesMenu)
+                if (currentPage == Pages.Codes)
                     ButtonNames = CodesButtonNames;
 
-                if (isOnConfirmMenu)
+                if (currentSubPage == SubPages.Confirm)
                     ButtonNames = ConfirmButtonNames;
 
-                if (isOnInfoMenu)
+                if (currentSubPage == SubPages.Info)
                     ButtonNames = InfoButtonNames;
+
+                if (currentPage == Pages.LateGame)
+                    ButtonNames = LGU.MainButtonsName;
+
+                if (currentPage == Pages.moreUpgrades && currentSubPage == SubPages.None)
+                    ButtonNames = LGU.MoreUpgradesButtonsName;
+
+                if (currentSubPage == SubPages.LGUConfirm)
+                    ButtonNames = LGU.ConfirmButtonNames;
+
+                if (currentPage == Pages.Contract && currentSubPage == SubPages.None)
+                    ButtonNames = LGU.ContractButtonNames;
+
+                if (currentPage == Pages.Demon)
+                    ButtonNames = LGU.DemonsButtonNames;
+
+                if (currentPage == Pages.Bruteforce)
+                    ButtonNames = LGU.IPButtonNames;
+
+                if (currentPage == Pages.Transmit || currentPage == Pages.Lookup)
+                    ButtonNames = Keyboard;
 
                 if (ButtonNames.Length <= 0 || ButtonNames == null)
                 {
@@ -518,24 +574,64 @@ namespace TerminalGamepad.GUILoader
         }
         private void DrawButtons()
         {
-            MakeGUIFitsScreen();
-            Limit = Rows * Columns;
-            int CurrentDrawingRow = 1;
+            if (ButtonNames != Keyboard)
+            {
+                MakeGUIFitsScreen();
+                Limit = Rows * Columns;
 
-            if (myCount > (Limit * Page) - 1)
-            {
-                Page++;
-                myCountInedx = myCount - (Limit * (Page - 1));
+                if (myCount > (Limit * Page) - 1)
+                {
+                    Page++;
+                    myCountInedx = myCount - (Limit * (Page - 1));
+                }
+                else if (myCount < (Limit * (Page - 1)))
+                {
+                    Page--;
+                    myCountInedx = myCount - (Limit * (Page - 1));
+                }
+
+                int CurrentDrawingRow = 1;
+
+                for (int i = 0; i < ButtonNames.Length; i++)
+                {
+                    ButtonIndex = i - (Limit * (Page - 1));
+                    CurrentDrawingRow = ButtonIndex / Columns;
+                    if (i == myCount)
+                    {
+                        GUI.backgroundColor = ReadColor(ModBase.HighlightedButtonColor.Value);
+                        buttonStyle = hoverbuttonStyle;
+                    }
+                    else
+                    {
+                        GUI.backgroundColor = ReadColor(ModBase.ButtonsColor.Value);
+                        buttonStyle = normalbuttonStyle;
+                    }
+                    if (ButtonIndex >= 0)
+                    {
+                        if (ButtonIndex < Limit)//                                                                                                                        between space
+                            GUI.Button(new Rect(MenuX + BetweenSpaceX + (ButtonIndex - (Columns * CurrentDrawingRow)) * (ButtonX / Columns), MenuY + (MenuHeight / (Rows + BetweenSpaceY)) + (CurrentDrawingRow * (ButtonY / Rows)), ButtonWidth, ButtonHeight), ButtonNames[i], buttonStyle);
+                    }
+                }
             }
-            else if (myCount < (Limit * (Page - 1)))
-            {
-                Page--;
-                myCountInedx = myCount - (Limit * (Page - 1));
-            }
+            else
+                DrawKeyboard();
+        }
+        private void DrawKeyboard()
+        {
+            MakeGUIFitsScreen();
+
+            int CurrentDrawingRow = 1;
+            Rows = 4;
+            Columns = 10;
+            Limit = Rows * Columns;
+
             for (int i = 0; i < ButtonNames.Length; i++)
             {
-                ButtonIndex = i - (Limit * (Page - 1));
-                CurrentDrawingRow = ButtonIndex / Columns;
+                float ButtonWidth = (Screen.width * 0.63f) / Columns;
+                float ButtonHeight = (Screen.height * 0.36f) / Rows;
+
+                CurrentDrawingRow = i / Columns;
+
                 if (i == myCount)
                 {
                     GUI.backgroundColor = ReadColor(ModBase.HighlightedButtonColor.Value);
@@ -546,10 +642,10 @@ namespace TerminalGamepad.GUILoader
                     GUI.backgroundColor = ReadColor(ModBase.ButtonsColor.Value);
                     buttonStyle = normalbuttonStyle;
                 }
-                if (ButtonIndex >= 0)
+                if (i >= 0)
                 {
-                    if (ButtonIndex < Limit)//                                                                                                                        between space
-                        GUI.Button(new Rect(MenuX + BetweenSpaceX + (ButtonIndex - (Columns * CurrentDrawingRow)) * (ButtonX / Columns), MenuY + (MenuHeight / (Rows + BetweenSpaceY)) + (CurrentDrawingRow * (ButtonY / Rows)), ButtonWidth, ButtonHeight), ButtonNames[i], buttonStyle);
+                    if (i < Limit)//                                                                                                                        between space
+                        GUI.Button(new Rect(MenuX + BetweenSpaceX + (i - (Columns * CurrentDrawingRow)) * (ButtonX / Columns), MenuY + (MenuHeight / (Rows + BetweenSpaceY)) + (CurrentDrawingRow * (ButtonY / Rows)), ButtonWidth, ButtonHeight), ButtonNames[i], buttonStyle);
                 }
             }
         }
@@ -607,23 +703,6 @@ namespace TerminalGamepad.GUILoader
             background.SetPixels(pix);
             background.Apply();
         }
-        private void MenuBool(bool Main, bool Store, bool Confirm, bool Info, bool Moons, bool Bestiary, bool UNUSED, bool Logs, bool Storage, bool Flash, bool Pings, bool Monitors, bool Codes, bool Decor, bool Upgrades)
-        {
-            isOnMainMenu = Main;
-            isOnStoreMenu = Store;
-            isOnConfirmMenu = Confirm;
-            isOnInfoMenu = Info;
-            isOnMoonsMenu = Moons;
-            isOnBestiaryMenu = Bestiary;
-            isOnLogsMenu = Logs;
-            isOnStorageMenu = Storage;
-            isOnFlashMenu = Flash;
-            isOnPingMenu = Pings;
-            isOnMonitorMenu = Monitors;
-            isOnCodesMenu = Codes;
-            isOnDecorMenu = Decor;
-            isOnUpgradesMenu = Upgrades;
-        }
 
         private void TerminalEvents()
         {
@@ -658,6 +737,9 @@ namespace TerminalGamepad.GUILoader
 
             keybinds.Return.Enable();
             keybinds.Return.performed += Return;
+
+            currentPage = Pages.Main;
+            currentSubPage = SubPages.None;
         }
         private void OnTerminalExited(object sender, TerminalEventArgs e)
         {
@@ -691,8 +773,6 @@ namespace TerminalGamepad.GUILoader
             myCount = 0;
             ItemAmount = 1;
             Page = 1;
-
-            MenuBool(true, false, false, false, false, false, false, false, false, false, false, false, false, false, false);
         }
 
         private void ShowHideKeyboard(InputAction.CallbackContext context)
@@ -703,138 +783,180 @@ namespace TerminalGamepad.GUILoader
         }
         private void Subbmit(InputAction.CallbackContext context)
         {
-            if (!isOnMonitorMenu && !isOnPingMenu && !isOnFlashMenu)
-            {
-                myCount = 0;
-                Page = 1;
-                myCountInedx = myCount - (Limit * (Page - 1));
-            }
-
             if (myCount < ButtonNames.Length)
-            {   
+            {
+
                 if (Gamepad.all.Count >= 1)
                     RoundManager.PlayRandomClip(TApi.Terminal.terminalAudio, TApi.Terminal.keyboardClips);
 
                 if (ButtonNames == EmptyButtonNames)
                 {
-                    MenuBool(true, false, false, false, false, false, false, false, false, false, false, false, false, false, false);
+                    currentPage = Pages.Main;
                     TApi.Terminal.OnSubmit();
                 }
                 if (ButtonNames != EmptyButtonNames)
                 {
                     bool skip = false;
-                    if (isOnMainMenu)
+                    if (currentPage == Pages.Main)
                     {
                         if (TApi.GetTerminalInput().ToLower() == "store")
                         {
-                            MenuBool(false, true, false, false, false, false, false, false, false, false, false, false, false, false, false);
+                            currentPage = Pages.Store;
                         }
                         if (TApi.GetTerminalInput().ToLower() == "moons")
                         {
-                            MenuBool(false, false, false, false, true, false, false, false, false, false, false, false, false, false, false);
+                            currentPage = Pages.Moons;
                         }
                         if (TApi.GetTerminalInput().ToLower() == "bestiary")
                         {
-                            MenuBool(false, false, false, false, false, true, false, false, false, false, false, false, false, false, false);
+                            currentPage = Pages.Bestiary;
                         }
                         if (TApi.GetTerminalInput().ToLower() == "sigurd")
                         {
-                            MenuBool(false, false, false, false, false, false, false, true, false, false, false, false, false, false, false);
+                            currentPage = Pages.Logs;
                         }
                         if (TApi.GetTerminalInput().ToLower() == "storage")
                         {
-                            MenuBool(false, false, false, false, false, false, false, false, true, false, false, false, false, false, false);
+                            currentPage = Pages.Storage;
                         }
                         if (TApi.GetTerminalInput().ToLower() == "blind")
                         {
-                            MenuBool(false, false, false, false, false, false, false, false, false, true, false, false, false, false, false);
+                            currentPage = Pages.Flash;
                         }
                         if (TApi.GetTerminalInput().ToLower() == "ping")
                         {
-                            MenuBool(false, false, false, false, false, false, false, false, false, false, true, false, false, false, false);
+                            currentPage = Pages.Ping;
                         }
                         if (TApi.GetTerminalInput().ToLower() == "monitors")
                         {
-                            MenuBool(false, false, false, false, false, false, false, false, false, false, false, true, false, false, false);
+                            currentPage = Pages.Monitor;
                         }
                         if (TApi.GetTerminalInput().ToLower() == "codes")
                         {
-                            MenuBool(false, false, false, false, false, false, false, false, false, false, false, false, true, false, false);
+                            currentPage = Pages.Codes;
                         }
                         if (TApi.GetTerminalInput().ToLower() == "decor")
                         {
-                            MenuBool(false, false, false, false, false, false, false, false, false, false, false, false, false, true, false);
+                            currentPage = Pages.Decor;
                         }
                         if (TApi.GetTerminalInput().ToLower() == "upgrades")
                         {
-                            MenuBool(false, false, false, false, false, false, false, false, false, false, false, false, false, false, true);
+                            currentPage = Pages.Upgrades;
+                        }
+                        if (TApi.GetTerminalInput().ToLower() == "transmit")
+                        {
+                            currentPage = Pages.Transmit;
+                            TApi.SetTerminalInput("");
+                        }
+                        if (TApi.GetTerminalInput().ToLower() == "lategame" && LGU.enabled)
+                        {
+                            currentPage = Pages.LateGame;
                         }
                         skip = true;
                     }
+                    if (currentPage == Pages.LateGame && !skip)
+                    {
+                        if (TApi.GetTerminalInput().ToLower() == "lategame store")
+                            currentPage = Pages.moreUpgrades;
 
-                    if (isOnFlashMenu && !skip)
+                        if (TApi.GetTerminalInput().ToLower() == "contract info")
+                            currentPage = Pages.Contract;
+
+                        if (TApi.GetTerminalInput().ToLower() == "demon")
+                            currentPage = Pages.Demon;
+
+                        if (TApi.GetTerminalInput().ToLower() == "bruteforce")
+                        {
+                            currentPage = Pages.Bruteforce;
+                            TApi.SetTerminalInput("");
+                        }
+
+                        if (TApi.GetTerminalInput().ToLower() == "lookup")
+                        {
+                            currentPage = Pages.Lookup;
+                            TApi.SetTerminalInput("");
+                        }
+
+                        skip = true;
+                    }
+
+                    if (currentPage == Pages.Flash && !skip)
                         if (ButtonNames[myCount].ToLower() == RadarsName[myCount].ToLower())
                         {
                             TApi.SetTerminalInput("flash " + RadarsName[myCount]);
                         }
 
-                    if (isOnPingMenu && !skip)
+                    if (currentPage == Pages.Ping && !skip)
                         if (ButtonNames[myCount].ToLower() == RadarsName[myCount].ToLower())
                         {
                             TApi.SetTerminalInput("ping " + RadarsName[myCount]);
                         }
 
-                    if (isOnStoreMenu && !skip)
+                    if (currentPage == Pages.Store && !skip)
                         if (ButtonNames[myCount].ToLower() == StoreButtonNames[myCount].ToLower())
                         {
                             tempItemAmount = ItemAmount;
-                            MenuBool(false, true, true, false, false, false, false, false, false, false, false, false, false, false, false);
+                            currentSubPage = SubPages.Confirm;
                         }
 
-                    if (isOnDecorMenu && !skip)
+                    if (currentPage == Pages.Decor && !skip)
                         if (ButtonNames[myCount].ToLower() == DecorButtonNames[myCount].ToLower())
                         {
-                            MenuBool(false, false, true, false, false, false, false, false, false, false, false, false, false, true, false);
+                            currentSubPage = SubPages.Confirm;
                         }
 
-                    if (isOnMoonsMenu && !skip)
+                    if (currentPage == Pages.Moons && !skip)
                         if (ButtonNames[myCount].ToLower() == MoonsButtonNames[myCount].ToLower())
                         {
-                            MenuBool(false, false, true, false, true, false, false, false, false, false, false, false, false, false, false);
+                            currentSubPage = SubPages.Confirm;
                         }
 
-                    if (isOnUpgradesMenu && !skip)
+                    if (currentPage == Pages.Upgrades && !skip)
                         if (ButtonNames[myCount].ToLower() == UpgradeButtonNames[myCount].ToLower())
                         {
-                            MenuBool(false, false, true, false, false, false, false, false, false, false, false, false, false, false, true);
+                            currentSubPage = SubPages.Confirm;
                         }
 
-                    if (isOnLogsMenu && !skip)
-                        if (ButtonNames[myCount].ToLower() == LogsButtonNames[myCount].ToLower())
-                        {
-                            MenuBool(false, false, false, false, false, false, true, true, false, false, false, false, false, false, false);
-                        }
+                    if (currentPage == Pages.moreUpgrades && currentSubPage == SubPages.None && !skip)
+                    {
+                        currentSubPage = SubPages.LGUConfirm;
+                        skip = true;
+                    }
 
-                    if (isOnConfirmMenu && !skip)
+                    if (currentPage == Pages.Contract && currentSubPage == SubPages.None && !skip)
+                    {
+                        if (ButtonNames[myCount].ToLower() == "random")
+                            currentSubPage = SubPages.None;
+                        else
+                            currentSubPage = SubPages.LGUConfirm;
+                        skip = true;
+                    }
+
+                    if (currentSubPage == SubPages.LGUConfirm && !skip)
+                    {
+                        currentSubPage = SubPages.None;
+                    }
+
+                    if (currentSubPage == SubPages.Confirm && !skip)
                     {
                         if (TApi.GetTerminalInput().ToLower() == "info")
                         {
-                            if (!isOnDecorMenu)
-                                MenuBool(false, isOnStoreMenu, false, true, isOnMoonsMenu, false, false, false, false, false, false, false, false, false, isOnUpgradesMenu);
+                            if (currentPage != Pages.Decor)
+                                currentSubPage = SubPages.Info;
                         }
                         else if (TApi.GetTerminalInput().ToLower() == "deny" || TApi.GetTerminalInput().ToLower() == "confirm")
                         {
-                            MenuBool(false, isOnStoreMenu, false, false, isOnMoonsMenu, false, false, false, false, false, false, false, false, isOnDecorMenu, isOnUpgradesMenu);
+                            currentSubPage = SubPages.None;
                         }
 
                     }
 
-                    if (isOnInfoMenu && !skip)
+                    if (currentSubPage == SubPages.Info && !skip)
                         if (TApi.GetTerminalInput().ToLower() == "info")
                         {
-                            if (isOnDecorMenu)
+                            if (currentPage == Pages.Decor)
                             {
-                                MenuBool(false, false, false, false, false, false, false, false, false, false, false, false, false, true, false);
+                                currentPage = Pages.Decor;
                                 TApi.SetTerminalInput("decor");
                             }
                             else
@@ -845,28 +967,117 @@ namespace TerminalGamepad.GUILoader
                             }
                         }
 
-                    if (isOnInfoMenu && !skip)
+                    if (currentSubPage == SubPages.Info && !skip)
                     {
-                        if (ButtonNames[myCount].ToLower() == "go back")
+                        if (TApi.GetTerminalInput().ToLower() == "store")
                         {
-                            MenuBool(false, isOnStoreMenu, false, false, isOnMoonsMenu, false, false, false, false, false, false, false, false, false, false);
+                            currentSubPage = SubPages.None;
                         }
                         else if (ButtonNames[myCount].ToLower() == "continue")
                         {
                             TApi.Terminal.OnSubmit();
                             TApi.SetTerminalInput("confirm");
-                            MenuBool(false, isOnStoreMenu, false, false, isOnMoonsMenu, false, false, false, false, false, false, false, false, false, isOnUpgradesMenu);
+                            currentSubPage = SubPages.None;
                         }
                     }
 
+                    if (currentPage == Pages.Bruteforce && !skip)
+                    {
+                        if (ButtonNames[myCount] == ".")
+                        {
+                            if (LGU.CountDots(TApi.GetTerminalInput()) < 3 && LGU.CountNumber(TApi.GetTerminalInput()) > 0)
+                                TApi.SetTerminalInput($"{TApi.GetTerminalInput()}{ButtonNames[myCount]}");
+                        }
+                        else if (ButtonNames[myCount].ToLower() != "submit" && ButtonNames[myCount].ToLower() != "backspace")
+                        {
+                            if (LGU.CountNumber(TApi.GetTerminalInput()) < LGU.HowManyNumbers(TApi.GetTerminalInput()))
+                                TApi.SetTerminalInput($"{TApi.GetTerminalInput()}{ButtonNames[myCount]}");
+
+                            mls.LogMessage(LGU.CountNumber(TApi.GetTerminalInput()));  
+                        }
+                        else if (ButtonNames[myCount].ToLower() == "backspace")
+                        {
+                            if (TApi.GetTerminalInput().Length > 0)
+                            {
+                                TApi.SetTerminalInput(TApi.GetTerminalInput().Substring(0, TApi.GetTerminalInput().Length - 1));
+                            }
+                        }
+                        else
+                        {
+                            TApi.SetTerminalInput("bruteforce " + TApi.GetTerminalInput());
+                            TApi.Terminal.OnSubmit();
+                        }
+
+                    }
+
+                    if (currentPage == Pages.Transmit && !skip)
+                    {
+                        if (ButtonNames[myCount].ToLower() != "submit" && ButtonNames[myCount].ToLower() != "space" && ButtonNames[myCount].ToLower() != "backspace")
+                        {
+                            TApi.SetTerminalInput($"{TApi.GetTerminalInput()}{ButtonNames[myCount]}");
+                        }
+                        else if (ButtonNames[myCount].ToLower() == "space")
+                        {
+                            TApi.SetTerminalInput($"{TApi.GetTerminalInput()} ");
+                        }
+                        else if (ButtonNames[myCount].ToLower() == "backspace")
+                        {
+                            if (TApi.GetTerminalInput().Length > 0)
+                            {
+                                TApi.SetTerminalInput(TApi.GetTerminalInput().Substring(0, TApi.GetTerminalInput().Length - 1));
+                            }
+                        }
+                        else
+                        {
+                            TApi.SetTerminalInput("transmit " + TApi.GetTerminalInput());
+                            TApi.Terminal.OnSubmit();
+                        }
+
+                    }
+
+                    if (currentPage == Pages.Lookup && !skip)
+                    {
+                        if (ButtonNames[myCount].ToLower() != "submit" && ButtonNames[myCount].ToLower() != "space" && ButtonNames[myCount].ToLower() != "backspace")
+                        {
+                            if (TApi.GetTerminalInput().Length < 2 && LGU.IsLettersOnly(ButtonNames[myCount]))
+                                TApi.SetTerminalInput($"{TApi.GetTerminalInput()}{ButtonNames[myCount]}");
+                            if (TApi.GetTerminalInput().Length == 2)
+                                TApi.SetTerminalInput($"{TApi.GetTerminalInput()}-");
+                            else if (TApi.GetTerminalInput().Length > 2 && TApi.GetTerminalInput().Length < 6 && LGU.IsNumbersOnly(ButtonNames[myCount]))
+                                TApi.SetTerminalInput($"{TApi.GetTerminalInput()}{ButtonNames[myCount]}");
+                        }
+                        else if (ButtonNames[myCount].ToLower() == "backspace")
+                        {
+                            if (TApi.GetTerminalInput().Length > 0)
+                            {
+                                TApi.SetTerminalInput(TApi.GetTerminalInput().Substring(0, TApi.GetTerminalInput().Length - 1));
+                            }
+                        }
+                        else if (ButtonNames[myCount].ToLower() == "submit")
+                        {
+                            TApi.SetTerminalInput("lookup " + TApi.GetTerminalInput());
+                            TApi.Terminal.OnSubmit();
+                        }
+
+                    }
+
                     ItemAmount = 1;
-                    TApi.Terminal.OnSubmit();
+                    if (currentPage != Pages.Bruteforce && currentPage != Pages.Transmit && currentPage != Pages.Lookup)
+                        TApi.Terminal.OnSubmit();
                 }
                 else
                 {
                     myCount = 0;
                     myCountInedx = myCount - (Limit * (Page - 1));
                 }
+
+                if (currentPage != Pages.Main && currentPage != Pages.Flash && currentPage != Pages.Ping && currentPage != Pages.Monitor && currentPage != Pages.Bruteforce && currentPage != Pages.LateGame && currentPage != Pages.Transmit && currentPage != Pages.Lookup)
+                {
+                    myCount = 0;
+                    Page = 1;
+                    myCountInedx = myCount - (Limit * (Page - 1));
+                }
+
             }
         }
         private void Return(InputAction.CallbackContext context)
@@ -874,50 +1085,70 @@ namespace TerminalGamepad.GUILoader
             if (Gamepad.all.Count >= 1)
                 RoundManager.PlayRandomClip(TApi.Terminal.terminalAudio, TApi.Terminal.keyboardClips);
 
-            if (!isOnMainMenu)
-            {
-                if (ButtonNames == EmptyButtonNames)
-                {
-                    MenuBool(true, false, false, false, false, false, false, false, false, false, false, false, false, false, false);
-                    TApi.SetTerminalInput("help");
-                }
-
-                if ((isOnStoreMenu && !isOnConfirmMenu && !isOnInfoMenu) || (isOnMoonsMenu && !isOnConfirmMenu && !isOnInfoMenu) || isOnBestiaryMenu || isOnLogsMenu || isOnStorageMenu || isOnFlashMenu || isOnPingMenu || isOnMonitorMenu || isOnCodesMenu || (isOnDecorMenu && !isOnConfirmMenu) || (isOnUpgradesMenu && !isOnConfirmMenu && !isOnInfoMenu))
-                {
-                    MenuBool(true, false, false, false, false, false, false, false, false, false, false, false, false, false, false);
-                    TApi.SetTerminalInput("help");
-                }
-                if (isOnConfirmMenu)
-                {
-                    MenuBool(false, isOnStoreMenu, false, false, isOnMoonsMenu, false, false, false, false, false, false, false, false, isOnDecorMenu, isOnUpgradesMenu);
-                    TApi.SetTerminalInput("deny");
-                    TApi.Terminal.OnSubmit();
-                    if (isOnStoreMenu)
-                        TApi.SetTerminalInput("store");
-                    else if (isOnMoonsMenu)
-                        TApi.SetTerminalInput("moons");
-                    else if (isOnDecorMenu)
-                        TApi.SetTerminalInput("decor");
-                    else if (isOnUpgradesMenu)
-                        TApi.SetTerminalInput("upgrades");
-                }
-                if (isOnInfoMenu)
-                {
-                    MenuBool(false, isOnStoreMenu, false, false, isOnMoonsMenu, false, false, false, false, false, false, false, false, isOnDecorMenu, isOnUpgradesMenu);
-                    if (isOnStoreMenu)
-                        TApi.SetTerminalInput("store");
-                    else if (isOnMoonsMenu)
-                        TApi.SetTerminalInput("moons");
-                    else if (isOnUpgradesMenu)
-                        TApi.SetTerminalInput("upgrades");
-                }
-                TApi.Terminal.OnSubmit();
-            }
-            if (!isOnMonitorMenu && !isOnPingMenu && !isOnFlashMenu)
+            if (currentPage != Pages.Bruteforce && currentPage != Pages.Main)
             {
                 Page = 1;
                 myCount = 0;
                 myCountInedx = myCount - (Limit * (Page - 1));
+            }
+
+            if (currentPage != Pages.Main)
+            {
+                if (ButtonNames == EmptyButtonNames)
+                {
+                    currentPage = Pages.Main;
+                    TApi.SetTerminalInput("help");
+                }  
+
+                if ((currentPage == Pages.Store && currentSubPage == SubPages.None) || (currentPage == Pages.Moons && currentSubPage == SubPages.None) || currentPage == Pages.Bestiary || currentPage == Pages.Logs || currentPage == Pages.Storage || currentPage == Pages.Flash || currentPage == Pages.Ping || currentPage == Pages.Monitor || currentPage == Pages.Codes || (currentPage == Pages.Decor && currentSubPage == SubPages.None) || (currentPage == Pages.Upgrades && currentSubPage == SubPages.None) || (currentPage == Pages.LateGame && currentSubPage == SubPages.None) || currentPage == Pages.Transmit)
+                {
+                    currentPage = Pages.Main;
+                    TApi.SetTerminalInput("help");
+                }
+                if (currentSubPage == SubPages.Confirm)
+                {
+                    currentSubPage = SubPages.None;
+                    TApi.SetTerminalInput("deny");
+                    TApi.Terminal.OnSubmit();
+                    if (currentPage == Pages.Store)
+                        TApi.SetTerminalInput("store");
+                    else if (currentPage == Pages.Moons)
+                        TApi.SetTerminalInput("moons");
+                    else if (currentPage == Pages.Decor)
+                        TApi.SetTerminalInput("decor");
+                    else if (currentPage == Pages.Upgrades)
+                        TApi.SetTerminalInput("upgrades");
+                }
+                if (currentSubPage == SubPages.Info)
+                {
+                    currentSubPage = SubPages.None;
+                    if (currentPage == Pages.Store)
+                        TApi.SetTerminalInput("store");
+                    else if (currentPage == Pages.Moons)
+                        TApi.SetTerminalInput("moons");
+                    else if (currentPage == Pages.Upgrades)
+                        TApi.SetTerminalInput("upgrades");
+                }
+                if ((currentPage == Pages.moreUpgrades || currentPage == Pages.Contract) && currentSubPage == SubPages.None || currentPage == Pages.Demon || currentPage == Pages.Lookup || currentPage == Pages.Bruteforce)
+                {
+                    currentPage = Pages.LateGame;
+                    TApi.SetTerminalInput("Lategame");
+                }
+                if (currentSubPage == SubPages.LGUConfirm)
+                {
+                    currentSubPage = SubPages.None;
+
+                    if (currentPage == Pages.moreUpgrades)
+                        TApi.SetTerminalInput("Lategame Store");
+                    else if (currentPage == Pages.Contract)
+                    {
+                        TApi.SetTerminalInput("contract info");
+                        TApi.Terminal.OnSubmit();
+                        TApi.SetTerminalInput("contract info");
+                    }
+                }
+
+                TApi.Terminal.OnSubmit();
             }
         }
 
@@ -1012,7 +1243,7 @@ namespace TerminalGamepad.GUILoader
             if (Gamepad.all.Count >= 1)
                 RoundManager.PlayRandomClip(TApi.Terminal.terminalAudio, TApi.Terminal.keyboardClips);
 
-            if (isOnStoreMenu && isUiVisible && !isOnConfirmMenu)
+            if (currentPage == Pages.Store && isUiVisible && currentSubPage == SubPages.None)
             {
                 ItemAmount++;
                 if (ItemAmount > 12)
@@ -1024,7 +1255,7 @@ namespace TerminalGamepad.GUILoader
             if (Gamepad.all.Count >= 1)
                 RoundManager.PlayRandomClip(TApi.Terminal.terminalAudio, TApi.Terminal.keyboardClips);
 
-            if (isOnStoreMenu && isUiVisible && !isOnConfirmMenu)
+            if (currentPage == Pages.Store && isUiVisible && currentSubPage == SubPages.None)
             {
                 ItemAmount--;
                 if (ItemAmount < 1)
