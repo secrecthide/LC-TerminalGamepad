@@ -13,7 +13,7 @@
   + Modded store items ✅
 
 + #### Config:
-  + Change any color to your style in the mod config file.
+  + Change any colour to your style in the mod config file.
 
   + Add commands from other mods to show up in the panel.
 
@@ -61,9 +61,22 @@
 
 + Moves Right.
 
+# Todo
++ ~~Adding transmit commands.~~
++ Addding compatibility with other terminal mods:
+  + ~~[Lategame Upgrades](https://thunderstore.io/c/lethal-company/p/malco/Lategame_Upgrades/).~~
+  + [SellMyScrap](https://thunderstore.io/c/lethal-company/p/Zehs/SellMyScrap/).
+  + [TerminalExtras](https://thunderstore.io/c/lethal-company/p/anormaltwig/TerminalExtras/).
+  + [ExtraDaysToDeadline](https://thunderstore.io/c/lethal-company/p/Anubis/ExtraDaysToDeadline/).
+  + [darmuhsTerminalStuff](https://thunderstore.io/c/lethal-company/p/darmuh/darmuhsTerminalStuff/).
+
 # Notes
-+ Transmit command is still being developed.
-+ Please report any bugs [here](https://discord.com/channels/1168655651455639582/1201370625428705450)
++ Feel free to give any suggestions or report bugs on [this post](https://discord.com/channels/1168655651455639582/1201370625428705450)
+
+## 1.3.0
++ Added transmit command.
++ Added lategame upgrades compatibility.
++ Bugs fix.
 
 ## 1.2.3
 + You can now switch between the navigation ways for the previous and next page.
@@ -80,7 +93,7 @@
 
 ## 1.1.0
 + Added a config file.
-+ You can now change mod colors.
++ You can now change mod colours.
 + You can now add commands from other mods.
 
 ## 1.0.9
