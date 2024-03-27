@@ -9,9 +9,10 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Terminal_Gamepad_Supprot</RootNamespace>
     <AssemblyName>Terminal Gamepad Supprot</AssemblyName>
-    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.8.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -58,11 +59,18 @@
     <Reference Include="TerminalApi">
       <HintPath>..\..\..\..\..\..\Games\Lethal.Company.v47\BepInEx\plugins\NotAtomicBomb-TerminalApi\TerminalApi.dll</HintPath>
     </Reference>
+    <Reference Include="TooManyEmotes">
+      <HintPath>..\Terminal Gamepad\References\TooManyEmotes.dll</HintPath>
+    </Reference>
     <Reference Include="Unity.InputSystem, Version=1.7.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\..\..\..\..\Games\Lethal.Company.v47\Lethal Company_Data\Managed\Unity.InputSystem.dll</HintPath>
     </Reference>
     <Reference Include="Unity.Netcode.Runtime, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null" />
+    <Reference Include="Unity.TextMeshPro, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Lethal Company\Lethal Company_Data\Managed\Unity.TextMeshPro.dll</HintPath>
+    </Reference>
     <Reference Include="UnityEngine">
       <HintPath>..\..\..\..\..\..\Games\Lethal.Company.v47\Lethal Company_Data\Managed\UnityEngine.dll</HintPath>
     </Reference>
@@ -75,12 +83,21 @@
       <HintPath>..\..\..\..\..\..\Games\Lethal.Company.v47\Lethal Company_Data\Managed\UnityEngine.IMGUIModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.TextRenderingModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null" />
+    <Reference Include="UnityEngine.UI, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Lethal Company\Lethal Company_Data\Managed\UnityEngine.UI.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UIModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Lethal Company\Lethal Company_Data\Managed\UnityEngine.UIModule.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Data\Pages.cs" />
     <Compile Include="Data\PagesScrollType.cs" />
     <Compile Include="Data\SubPages.cs" />
     <Compile Include="GUI Loader\GUI.cs" />
+    <Compile Include="TooManyEmotes.cs" />
     <Compile Include="LGU.cs" />
     <Compile Include="plugin.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

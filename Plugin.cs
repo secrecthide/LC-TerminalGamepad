@@ -13,11 +13,13 @@ namespace TerminalGamepad
     [BepInDependency("atomic.terminalapi", MinimumDependencyVersion: "1.5.0")]
     [BepInDependency("com.rune580.LethalCompanyInputUtils", MinimumDependencyVersion: "0.6.3")]
     [BepInDependency("com.malco.lethalcompany.moreshipupgrades", BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency("FlipMods.TooManyEmotes", BepInDependency.DependencyFlags.SoftDependency)]
+
     class ModBase : BaseUnityPlugin
     {
         private const string GUID = "Secrecthide.TerminalGamepad";
         private const string Name = "TerminalGamepad";
-        private const string Version = "1.3.0";
+        private const string Version = "1.3.5";
 
         private readonly Harmony harmony = new Harmony(GUID);
         private static ModBase instance;
@@ -68,12 +70,12 @@ namespace TerminalGamepad
             AmountButtonTextColor = Config.Bind("Text Colors", "Amount box text color", "24, 203, 0, 255", "The color of the amount box text");
 
 
-            BoxTextColor.SettingChanged += (s,e) => TerminalGUI.UpdateTextColor();
-            ButtonTextColor.SettingChanged += (s,e) => TerminalGUI.UpdateTextColor();
-            HighlightedButtonTextColor.SettingChanged += (s,e) => TerminalGUI.UpdateTextColor();
-            AmountButtonTextColor.SettingChanged += (s,e) => TerminalGUI.UpdateTextColor();
-            CustomCommads.SettingChanged += (s,e) => TerminalGUI.UpdateMainButtonNames();
-            PagesMode.SettingChanged += (s,e) => TerminalGUI.UpdatePagesMode();
+            BoxTextColor.SettingChanged += (s, e) => TerminalGUI.UpdateTextColor();
+            ButtonTextColor.SettingChanged += (s, e) => TerminalGUI.UpdateTextColor();
+            HighlightedButtonTextColor.SettingChanged += (s, e) => TerminalGUI.UpdateTextColor();
+            AmountButtonTextColor.SettingChanged += (s, e) => TerminalGUI.UpdateTextColor();
+            CustomCommads.SettingChanged += (s, e) => TerminalGUI.UpdateMainButtonNames();
+            PagesMode.SettingChanged += (s, e) => TerminalGUI.UpdatePagesMode();
         }
 
         private void OnTerminalBeginUsing(object sender, TerminalEventArgs e)

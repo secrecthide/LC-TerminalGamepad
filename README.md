@@ -63,8 +63,9 @@
 
 # Todo
 + ~~Adding transmit commands.~~
-+ Addding compatibility with other terminal mods:
++ Adding compatibility with other terminal mods:
   + ~~[Lategame Upgrades](https://thunderstore.io/c/lethal-company/p/malco/Lategame_Upgrades/).~~
+  + ~~[TooManyEmotes](https://thunderstore.io/c/lethal-company/p/FlipMods/TooManyEmotes/).~~
   + [SellMyScrap](https://thunderstore.io/c/lethal-company/p/Zehs/SellMyScrap/).
   + [TerminalExtras](https://thunderstore.io/c/lethal-company/p/anormaltwig/TerminalExtras/).
   + [ExtraDaysToDeadline](https://thunderstore.io/c/lethal-company/p/Anubis/ExtraDaysToDeadline/).
@@ -72,6 +73,10 @@
 
 # Notes
 + Feel free to give any suggestions or report bugs on [this post](https://discord.com/channels/1168655651455639582/1201370625428705450)
+
+# 1.3.5
++ Added TooManyEmotes Compatibility.
++ Bugs fix.
 
 ## 1.3.0
 + Added transmit command.

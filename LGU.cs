@@ -1,20 +1,20 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using TerminalGamepad.GUILoader;
-using TApi = TerminalApi.TerminalApi;
 
 namespace TerminalGamepad
 {
     internal class LGU
     {
         private static bool? _enabled;
-        public static string[] MainButtonsName = { "Lategame Store", "InitAttack", "Cooldown", "Interns", "Scrap Insurance", "Extend Deadline 1", "Contract Info", "Demon", "Bruteforce", "Lookup" };
-        public static string[] MoreUpgradesButtonsName = { "Back Muscles", "Bargain Connections", "Beekeeper", "Better Scanner", "Bigger Lungs", "Charging Booster", "Discombobulator", "Drop Pod Thrusters", "Fast Encryption", "Hunter", "Lethal Deals", "Lightning Rod", "Locksmith", "Malware Broadcaster", "Market Influence", "NV Headset Batteries", "Protein Powder", "Quantum Disruptor", "Running Shoes", "Shutter Batteries", "Sick Beats", "Stimpack", "Strong Legs", "Walkie GPS" };
-        public static string[] ConfirmButtonNames = { "Confirm", "Deny" };
-        public static string[] DemonsButtonNames = { "Poltergeist", "Phantom", "Wraith", "Banshee", "Jinn", "Hantu", "Moroi", "Myling", "Goryo", "De ogen" };
-        public static string[] IPButtonNames = { "Submit", "Backspace", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "." };
-        public static string[] ContractButtonNames;
+        public static List<string> MainButtonsName = new List<string>() { "Lategame Store", "InitAttack", "Cooldown", "Interns", "Scrap Insurance", "Extend Deadline 1", "Contract Info", "Demon", "Bruteforce", "Lookup" };
+        public static List<string> MoreUpgradesButtonsName = new List<string>() { "Back Muscles", "Bargain Connections", "Beekeeper", "Better Scanner", "Bigger Lungs", "Charging Booster", "Climbing Gloves", "Discombobulator", "Drop Pod Thrusters", "Efficient Engines", "Fast Encryption", "Hunter", "Lethal Deals", "Lightning Rod", "Locksmith", "Malware Broadcaster", "Market Influence", "NV Headset Batteries", "Protein Powder", "Quantum Disruptor", "Running Shoes", "Shutter Batteries", "Sick Beats", "Sigurd Access", "Stimpack", "Strong Legs", "Walkie GPS" };
+        public static List<string> ConfirmButtonNames = new List<string>() { "Confirm", "Deny" };
+        public static List<string> DemonsButtonNames = new List<string>() { "Poltergeist", "Phantom", "Wraith", "Banshee", "Jinn", "Hantu", "Moroi", "Myling", "Goryo", "De ogen" };
+        public static List<string> IPButtonNames = new List<string>() { "Submit", "Backspace", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "." };
+        public static List<string> ContractButtonNames;
 
         public static bool enabled
         {
@@ -29,34 +29,19 @@ namespace TerminalGamepad
             }
         }
 
-        public static void AddLguButton()
+        public static void Setup()
         {
             if (enabled)
             {
-                TerminalGUI.MainButtonNames = new string[TerminalGUI.MainButtonNames.Length + 1];
-                for (int i = 0; i < TerminalGUI.MainButtonNames.Length - 1; i++)
-                {
-                    TerminalGUI.MainButtonNames[i] = TerminalGUI.MainButtonNamesTEMP[i];
-                }
-                TerminalGUI.MainButtonNames[TerminalGUI.MainButtonNames.Length - 1] = "LateGame";
+                TerminalGUI.MainButtonNames.Add("LateGame");
                 TerminalGUI.MainButtonNamesTEMP = TerminalGUI.MainButtonNames;
             }
         }
 
         public static void ContractMoons()
         {
-            ContractButtonNames = new string[TerminalGUI.MoonsButtonNames.Length];
-            int j = 0;
-            for (int i = 0; i < ContractButtonNames.Length; i++)
-            {
-                if (i == 0)
-                    ContractButtonNames[i] = "Random";
-                else
-                {
-                    ContractButtonNames[i] = TerminalGUI.MoonsButtonNames[j];
-                    j++;
-                }
-            }
+            ContractButtonNames = new List<string> { "Random" };
+            ContractButtonNames.AddRange(TerminalGUI.MoonsButtonNames.Select(item => item).ToList());
         }
 
         public static int CountDots(string input)

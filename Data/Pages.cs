@@ -20,7 +20,8 @@
         Contract,
         Demon,
         Lookup,
-        Bruteforce
+        Bruteforce,
+        Emotes
 
     }
 }

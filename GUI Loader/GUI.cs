@@ -16,24 +16,24 @@ namespace TerminalGamepad.GUILoader
 {
     internal class TerminalGUI : MonoBehaviour
     {
-        private string[] ButtonNames;
-        public static string[] MainButtonNamesTEMP;
-        private string[] StoreButtonNames;
-        public static string[] MoonsButtonNames;
-        private string[] BestiaryButtonNames;
-        private string[] LogsButtonNames;
-        private string[] DecorButtonNames;
-        private string[] UpgradeButtonNames;
-        private string[] RadarsName;
-        private string[] StorageButtonNames;
-        private string[] PlayersName;
-        private string[] CodesButtonNames;
+        private List<string> ButtonNames;
+        public static List<string> MainButtonNamesTEMP;
+        private List<string> StoreButtonNames;
+        public static List<string> MoonsButtonNames;
+        private List<string> BestiaryButtonNames;
+        private List<string> LogsButtonNames;
+        private List<string> DecorButtonNames;
+        private List<string> UpgradeButtonNames;
+        private List<string> RadarsName;
+        private List<string> StorageButtonNames;
+        private List<string> PlayersName;
+        private List<string> CodesButtonNames;
 
-        public static string[] MainButtonNames = { "Store", "Moons", "Scan", "Monitors", "Ping", "Flash", "Transmit", "Codes", "Bestiary", "Logs", "Upgrades", "Storage", "Decor" };
-        private string[] ConfirmButtonNames = { "Confirm", "Deny", "Info" };
-        private string[] InfoButtonNames = { "Continue", "Go Back" };
-        private string[] EmptyButtonNames = { "Return" };
-        private string[] Keyboard = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "0",
+        public static List<string> MainButtonNames = new List<string>() { "Store", "Moons", "Scan", "Monitors", "Ping", "Flash", "Transmit", "Codes", "Bestiary", "Logs", "Upgrades", "Storage", "Decor" };
+        private List<string> ConfirmButtonNames = new List<string>() { "Confirm", "Deny", "Info" };
+        private List<string> InfoButtonNames = new List<string>() { "Continue", "Go Back" };
+        private List<string> EmptyButtonNames = new List<string>() { "Return" };
+        private List<string> Keyboard = new List<string>() { "1", "2", "3", "4", "5", "6", "7", "8", "9", "0",
                                       "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P",
                                       "A", "S", "D", "F", "G", "H", "J", "K", "L", "SPACE",
                                       "Backspace", "Z", "X", "C", "V", "B", "N", "M", "!", "Submit"};
@@ -89,7 +89,8 @@ namespace TerminalGamepad.GUILoader
             ButtonNames = MainButtonNames;
             mls = BepInEx.Logging.Logger.CreateLogSource("TerminalGamepad");
 
-            LGU.AddLguButton();
+            LGU.Setup();
+            TooManyEmotes.Setup();
             TerminalEvents();
             UpdateMainButtonNames();
             UpdatePagesMode();
@@ -99,8 +100,8 @@ namespace TerminalGamepad.GUILoader
 
         private void Update()
         {
-            try { if (ButtonNames[myCount] != null){ } }
-            catch (IndexOutOfRangeException) { myCount = ButtonNames.Length - 1; myCountInedx = myCount - (Limit * (Page - 1)); }
+            try{ if (ButtonNames[myCount] != null) { } }
+            catch (ArgumentOutOfRangeException) { myCount = ButtonNames.Count - 1; myCountInedx = myCount - (Limit * (Page - 1)); }
 
             if (StartOfRound.Instance.localPlayerController.inTerminalMenu && isUiVisible)
             {
@@ -125,7 +126,7 @@ namespace TerminalGamepad.GUILoader
                         {
                             tmp = MoonsButtonNames[myCount];
                         }
-                        if (currentPage == Pages.Upgrades && currentSubPage == SubPages.None && UpgradeButtonNames.Length > 0)
+                        if (currentPage == Pages.Upgrades && currentSubPage == SubPages.None)
                         {
                             tmp = UpgradeButtonNames[myCount];
                         }
@@ -221,8 +222,7 @@ namespace TerminalGamepad.GUILoader
                     else
                         TApi.SetTerminalInput("contract " + LGU.ContractButtonNames[myCount]);
                 }
-            }
-            
+            }    
         }
         private void MakeGUIFitsScreen()
         {
@@ -271,132 +271,50 @@ namespace TerminalGamepad.GUILoader
         {
             if (currentPage == Pages.Store || justHasBeenLoaded)
             {
-                StoreButtonNames = TApi.Terminal.buyableItemsList.Select(item => item.itemName).ToArray();
+                StoreButtonNames = TApi.Terminal.buyableItemsList.Select(item => item.itemName).ToList();
             }
 
             if (currentPage == Pages.Moons || justHasBeenLoaded)
             {
-                MoonsButtonNames = new string[TApi.Terminal.moonsCatalogueList.Length + 1];
-
-                for (int i = 0; i < TApi.Terminal.moonsCatalogueList.Length; i++)
-                {
-                    MoonsButtonNames[i] = TApi.Terminal.moonsCatalogueList[i].PlanetName;
-                }
-
-                MoonsButtonNames[MoonsButtonNames.Length - 1] = "Company";
+                MoonsButtonNames = TApi.Terminal.moonsCatalogueList.Select(item => item.PlanetName).ToList();
+                MoonsButtonNames.Add("Company");
             }
 
             if (currentPage == Pages.Upgrades || justHasBeenLoaded)
             {
-                List<string> upgradeButtonNamesTemp = new List<string>();
-
-                foreach (var unlockable in StartOfRound.Instance.unlockablesList.unlockables)
-                {
-                    if (unlockable.alwaysInStock && !unlockable.alreadyUnlocked && !unlockable.hasBeenUnlockedByPlayer)
-                    {
-                        upgradeButtonNamesTemp.Add(unlockable.unlockableName);
-                    }
-                }
-                UpgradeButtonNames = upgradeButtonNamesTemp.ToArray();
+                UpgradeButtonNames = StartOfRound.Instance.unlockablesList.unlockables.Where(item => item.alwaysInStock).Select(item => item.unlockableName).ToList();
             }
 
             if (currentPage == Pages.Storage || justHasBeenLoaded)
             {
-                List<string> storageButtonNamesTemp = new List<string>();
-
-                foreach (var unlockable in StartOfRound.Instance.unlockablesList.unlockables)
-                {
-                    if (unlockable.inStorage)
-                    {
-                        storageButtonNamesTemp.Add(unlockable.unlockableName);
-                    }
-                }
-
-                StorageButtonNames = storageButtonNamesTemp.ToArray();
+                StorageButtonNames = StartOfRound.Instance.unlockablesList.unlockables.Where(item => item.inStorage).Select(item => item.unlockableName).ToList();
             }
 
             if (currentPage == Pages.Bestiary || justHasBeenLoaded)
             {
-                if (TApi.Terminal.scannedEnemyIDs.Count <= 0)
-                {
-                    BestiaryButtonNames = new string[0];
-                }
-                else
-                {
-                    BestiaryButtonNames = new string[TApi.Terminal.scannedEnemyIDs.Count];
-                    for (int i = 0; i < TApi.Terminal.scannedEnemyIDs.Count; i++)
-                    {
-                        BestiaryButtonNames[i] = TApi.Terminal.enemyFiles[TApi.Terminal.scannedEnemyIDs[i]].creatureName;
-                    }
-                }
+                BestiaryButtonNames = TApi.Terminal.scannedEnemyIDs.Select(item => TApi.Terminal.enemyFiles[item].creatureName).ToList();
             }
 
             if (currentPage == Pages.Logs || justHasBeenLoaded)
             {
-                if (TApi.Terminal.unlockedStoryLogs.Count <= 0)
-                {
-                    LogsButtonNames = new string[0];
-                }
-                else
-                {
-                    LogsButtonNames = new string[TApi.Terminal.unlockedStoryLogs.Count];
-                    for (int i = 0; i < TApi.Terminal.unlockedStoryLogs.Count; i++)
-                    {
-                        LogsButtonNames[i] = TApi.Terminal.logEntryFiles[TApi.Terminal.unlockedStoryLogs[i]].creatureName;
-                    }
-                }
+                LogsButtonNames = TApi.Terminal.unlockedStoryLogs.Select(item => TApi.Terminal.logEntryFiles[item].creatureName).ToList();
             }
 
             if (currentPage == Pages.Decor || justHasBeenLoaded)
             {
-                DecorButtonNames = new string[TApi.Terminal.ShipDecorSelection.Count];
-                for (int i = 0; i < DecorButtonNames.Length; i++)
-                {
-                    DecorButtonNames[i] = TApi.Terminal.ShipDecorSelection[i].creatureName;
-                }
+                DecorButtonNames = TApi.Terminal.ShipDecorSelection.Select(item => item.creatureName).ToList();
             }
 
             if (currentPage == Pages.Flash || currentPage == Pages.Ping || justHasBeenLoaded)
             {
-                var radarsNameTemp = new List<string>();
-
-                foreach (var radarTarget in StartOfRound.Instance.mapScreen.radarTargets)
-                {
-                    if (radarTarget.isNonPlayer)
-                    {
-                        radarsNameTemp.Add(radarTarget.name);
-                    }
-                }
-
-                RadarsName = radarsNameTemp.ToArray();
+                RadarsName = StartOfRound.Instance.mapScreen.radarTargets.Where(item => item.isNonPlayer).Select(item => item.name).ToList();
             }
 
             if (currentPage == Pages.Monitor || justHasBeenLoaded)
             {
-                var playersNameTemp = new List<string>();
-
-                foreach (var playerScript in StartOfRound.Instance.allPlayerScripts)
-                {
-                    if (playerScript.isPlayerControlled)
-                    {
-                        playersNameTemp.Add(playerScript.playerUsername);
-                    }
-                }
-                foreach (var radarTarget in StartOfRound.Instance.mapScreen.radarTargets)
-                {
-                    if (radarTarget.isNonPlayer)
-                    {
-                        playersNameTemp.Add(radarTarget.name);
-                    }
-                }
-
-                PlayersName = new string[playersNameTemp.Count + 1];
-                PlayersName[0] = "On/Off";
-
-                for (int i = 0; i < playersNameTemp.Count; i++)
-                {
-                    PlayersName[i + 1] = playersNameTemp[i];
-                }
+                PlayersName = new List<string>() { "On/Off" };
+                PlayersName.AddRange(StartOfRound.Instance.allPlayerScripts.Where(item => item.isPlayerControlled).Select(item => item.playerUsername));
+                PlayersName.AddRange(StartOfRound.Instance.mapScreen.radarTargets.Where(item => item.isNonPlayer).Select(item => item.name));
             }
 
             if (!StartOfRound.Instance.inShipPhase)
@@ -404,18 +322,17 @@ namespace TerminalGamepad.GUILoader
                 TerminalAccessibleObject[] Codes = UnityEngine.Object.FindObjectsOfType<TerminalAccessibleObject>();
                 if (Codes != null)
                 {
-                    CodesButtonNames = new string[Codes.Length];
-                    for (int i = 0; i < Codes.Length; i++)
-                    {
-                        CodesButtonNames[i] = Codes[i].objectCode;
-                    }
+                    CodesButtonNames = Codes.Select(item => item.objectCode).ToList();
                 }
             }
             else
-                CodesButtonNames = new string[0];
+                CodesButtonNames = new List<string>();
 
             if (currentPage == Pages.Contract)
                 LGU.ContractMoons();
+
+            if (currentPage == Pages.Emotes)
+                TooManyEmotes.GetEmotesList();
 
             if (justHasBeenLoaded)
                 justHasBeenLoaded = false;
@@ -430,9 +347,9 @@ namespace TerminalGamepad.GUILoader
         }
         public static void UpdateMainButtonNames()
         {
-            string[] tmp1 = MainButtonNamesTEMP;
+            string[] tmp1 = MainButtonNamesTEMP.ToArray();
             string[] tmp2 = ReadText(ModBase.CustomCommads.Value);
-            MainButtonNames = new string[tmp1.Length + tmp2.Length];
+            MainButtonNames = new string[tmp1.Length + tmp2.Length].ToList();
 
             for (int i = 0; i < tmp1.Length; i++)
             {
@@ -492,7 +409,7 @@ namespace TerminalGamepad.GUILoader
 
             if (isUiVisible && StartOfRound.Instance.localPlayerController.inTerminalMenu)
             {
-                totalOfPages = Mathf.CeilToInt((float)ButtonNames.Length / (float)Limit);
+                totalOfPages = Mathf.CeilToInt((float)ButtonNames.Count / (float)Limit);
                 string boxText = $"Page <{Page}/{totalOfPages}>";
 
                 GUI.backgroundColor = ReadColor(ModBase.BoxBackgroundColor.Value);
@@ -505,67 +422,83 @@ namespace TerminalGamepad.GUILoader
                 }
 
                 //drawing menus
-                if (currentPage == Pages.Main)
-                    ButtonNames = MainButtonNames;
+                switch (currentPage)
+                {
+                    case Pages.Main:
+                        ButtonNames = MainButtonNames;
+                        break;
+                    case Pages.Store:
+                        ButtonNames = StoreButtonNames;
+                        break;
+                    case Pages.Moons:
+                        ButtonNames = MoonsButtonNames;
+                        break;
+                    case Pages.Monitor:
+                        ButtonNames = PlayersName;
+                        break;
+                    case Pages.Ping:
+                        ButtonNames = RadarsName;
+                        break;
+                    case Pages.Flash:
+                        ButtonNames = RadarsName;
+                        break;
+                    case Pages.Codes:
+                        ButtonNames = CodesButtonNames;
+                        break;
+                    case Pages.Bestiary:
+                        ButtonNames = BestiaryButtonNames;
+                        break;
+                    case Pages.Logs:
+                        ButtonNames = LogsButtonNames;
+                        break;
+                    case Pages.Upgrades:
+                        ButtonNames = UpgradeButtonNames;
+                        break;
+                    case Pages.Storage:
+                        ButtonNames = StorageButtonNames;
+                        break;
+                    case Pages.Decor:
+                        ButtonNames = DecorButtonNames;
+                        break;
+                    case Pages.Transmit:
+                        ButtonNames = Keyboard;
+                        break;
+                    case Pages.LateGame:
+                        ButtonNames = LGU.MainButtonsName;
+                        break;
+                    case Pages.moreUpgrades:
+                        ButtonNames = LGU.MoreUpgradesButtonsName;
+                        break;
+                    case Pages.Contract:
+                        ButtonNames = LGU.ContractButtonNames;
+                        break;
+                    case Pages.Demon:
+                        ButtonNames = LGU.DemonsButtonNames;
+                        break;
+                    case Pages.Lookup:
+                        ButtonNames = Keyboard;
+                        break;
+                    case Pages.Bruteforce:
+                        ButtonNames = LGU.IPButtonNames;
+                        break;
+                    case Pages.Emotes:
+                        ButtonNames = TooManyEmotes.StoreButtonsName;
+                        break;
+                }
+                switch (currentSubPage)
+                {
+                    case SubPages.Confirm:
+                        ButtonNames = ConfirmButtonNames;
+                        break;
+                    case SubPages.Info:
+                        ButtonNames = InfoButtonNames;
+                        break;
+                    case SubPages.LGUConfirm:
+                        ButtonNames = LGU.ConfirmButtonNames;
+                        break;
+                }
 
-                if (currentPage == Pages.Store && currentSubPage == SubPages.None)
-                    ButtonNames = StoreButtonNames;
-
-                if (currentPage == Pages.Moons && currentSubPage == SubPages.None)
-                    ButtonNames = MoonsButtonNames;
-
-                if (currentPage == Pages.Upgrades && currentSubPage == SubPages.None)
-                    ButtonNames = UpgradeButtonNames;
-
-                if (currentPage == Pages.Bestiary)
-                    ButtonNames = BestiaryButtonNames;
-
-                if (currentPage == Pages.Logs)
-                    ButtonNames = LogsButtonNames;
-
-                if (currentPage == Pages.Storage)
-                    ButtonNames = StorageButtonNames;
-
-                if (currentPage == Pages.Flash || currentPage == Pages.Ping)
-                    ButtonNames = RadarsName;
-
-                if (currentPage == Pages.Monitor)
-                    ButtonNames = PlayersName;
-
-                if (currentPage == Pages.Decor && currentSubPage == SubPages.None)
-                    ButtonNames = DecorButtonNames;
-
-                if (currentPage == Pages.Codes)
-                    ButtonNames = CodesButtonNames;
-
-                if (currentSubPage == SubPages.Confirm)
-                    ButtonNames = ConfirmButtonNames;
-
-                if (currentSubPage == SubPages.Info)
-                    ButtonNames = InfoButtonNames;
-
-                if (currentPage == Pages.LateGame)
-                    ButtonNames = LGU.MainButtonsName;
-
-                if (currentPage == Pages.moreUpgrades && currentSubPage == SubPages.None)
-                    ButtonNames = LGU.MoreUpgradesButtonsName;
-
-                if (currentSubPage == SubPages.LGUConfirm)
-                    ButtonNames = LGU.ConfirmButtonNames;
-
-                if (currentPage == Pages.Contract && currentSubPage == SubPages.None)
-                    ButtonNames = LGU.ContractButtonNames;
-
-                if (currentPage == Pages.Demon)
-                    ButtonNames = LGU.DemonsButtonNames;
-
-                if (currentPage == Pages.Bruteforce)
-                    ButtonNames = LGU.IPButtonNames;
-
-                if (currentPage == Pages.Transmit || currentPage == Pages.Lookup)
-                    ButtonNames = Keyboard;
-
-                if (ButtonNames.Length <= 0 || ButtonNames == null)
+                if (ButtonNames.Count <= 0 || ButtonNames == null)
                 {
                     ButtonNames = EmptyButtonNames;
                 }
@@ -592,7 +525,7 @@ namespace TerminalGamepad.GUILoader
 
                 int CurrentDrawingRow = 1;
 
-                for (int i = 0; i < ButtonNames.Length; i++)
+                for (int i = 0; i < ButtonNames.Count; i++)
                 {
                     ButtonIndex = i - (Limit * (Page - 1));
                     CurrentDrawingRow = ButtonIndex / Columns;
@@ -625,7 +558,7 @@ namespace TerminalGamepad.GUILoader
             Columns = 10;
             Limit = Rows * Columns;
 
-            for (int i = 0; i < ButtonNames.Length; i++)
+            for (int i = 0; i < ButtonNames.Count; i++)
             {
                 float ButtonWidth = (Screen.width * 0.63f) / Columns;
                 float ButtonHeight = (Screen.height * 0.36f) / Rows;
@@ -783,9 +716,9 @@ namespace TerminalGamepad.GUILoader
         }
         private void Subbmit(InputAction.CallbackContext context)
         {
-            if (myCount < ButtonNames.Length)
+            if (myCount < ButtonNames.Count)
             {
-
+                Pages prePage = currentPage;
                 if (Gamepad.all.Count >= 1)
                     RoundManager.PlayRandomClip(TApi.Terminal.terminalAudio, TApi.Terminal.keyboardClips);
 
@@ -852,6 +785,10 @@ namespace TerminalGamepad.GUILoader
                         {
                             currentPage = Pages.LateGame;
                         }
+                        if (TApi.GetTerminalInput().ToLower() == "emotes" && TooManyEmotes.enabled)
+                        {
+                            currentPage = Pages.Emotes;
+                        }
                         skip = true;
                     }
                     if (currentPage == Pages.LateGame && !skip)
@@ -917,6 +854,12 @@ namespace TerminalGamepad.GUILoader
                             currentSubPage = SubPages.Confirm;
                         }
 
+                    if (currentPage == Pages.Emotes && !skip)
+                        if (ButtonNames[myCount].ToLower() == TooManyEmotes.StoreButtonsName[myCount].ToLower())
+                        {
+                            currentSubPage = SubPages.Confirm;
+                        }
+
                     if (currentPage == Pages.moreUpgrades && currentSubPage == SubPages.None && !skip)
                     {
                         currentSubPage = SubPages.LGUConfirm;
@@ -941,7 +884,7 @@ namespace TerminalGamepad.GUILoader
                     {
                         if (TApi.GetTerminalInput().ToLower() == "info")
                         {
-                            if (currentPage != Pages.Decor)
+                            if (currentPage != Pages.Decor && currentPage != Pages.Emotes)
                                 currentSubPage = SubPages.Info;
                         }
                         else if (TApi.GetTerminalInput().ToLower() == "deny" || TApi.GetTerminalInput().ToLower() == "confirm")
@@ -965,20 +908,17 @@ namespace TerminalGamepad.GUILoader
                                 TApi.Terminal.OnSubmit();
                                 TApi.SetTerminalInput(tmp + " info");
                             }
+                            skip = true;
                         }
 
                     if (currentSubPage == SubPages.Info && !skip)
                     {
-                        if (TApi.GetTerminalInput().ToLower() == "store")
-                        {
-                            currentSubPage = SubPages.None;
-                        }
-                        else if (ButtonNames[myCount].ToLower() == "continue")
+                        if (ButtonNames[myCount].ToLower() == "continue")
                         {
                             TApi.Terminal.OnSubmit();
                             TApi.SetTerminalInput("confirm");
-                            currentSubPage = SubPages.None;
                         }
+                        currentSubPage = SubPages.None;
                     }
 
                     if (currentPage == Pages.Bruteforce && !skip)
@@ -1071,7 +1011,7 @@ namespace TerminalGamepad.GUILoader
                     myCountInedx = myCount - (Limit * (Page - 1));
                 }
 
-                if (currentPage != Pages.Main && currentPage != Pages.Flash && currentPage != Pages.Ping && currentPage != Pages.Monitor && currentPage != Pages.Bruteforce && currentPage != Pages.LateGame && currentPage != Pages.Transmit && currentPage != Pages.Lookup)
+                if (currentPage != Pages.Main && prePage != Pages.Flash && prePage != Pages.Ping && prePage != Pages.Monitor && prePage != Pages.Bruteforce && (prePage != Pages.LateGame || currentPage != Pages.LateGame) && prePage != Pages.Transmit && prePage != Pages.Lookup && prePage != Pages.Codes)
                 {
                     myCount = 0;
                     Page = 1;
@@ -1100,7 +1040,7 @@ namespace TerminalGamepad.GUILoader
                     TApi.SetTerminalInput("help");
                 }  
 
-                if ((currentPage == Pages.Store && currentSubPage == SubPages.None) || (currentPage == Pages.Moons && currentSubPage == SubPages.None) || currentPage == Pages.Bestiary || currentPage == Pages.Logs || currentPage == Pages.Storage || currentPage == Pages.Flash || currentPage == Pages.Ping || currentPage == Pages.Monitor || currentPage == Pages.Codes || (currentPage == Pages.Decor && currentSubPage == SubPages.None) || (currentPage == Pages.Upgrades && currentSubPage == SubPages.None) || (currentPage == Pages.LateGame && currentSubPage == SubPages.None) || currentPage == Pages.Transmit)
+                if ((currentPage == Pages.Store && currentSubPage == SubPages.None) || (currentPage == Pages.Moons && currentSubPage == SubPages.None) || currentPage == Pages.Bestiary || currentPage == Pages.Logs || currentPage == Pages.Storage || currentPage == Pages.Flash || currentPage == Pages.Ping || currentPage == Pages.Monitor || currentPage == Pages.Codes || (currentPage == Pages.Decor && currentSubPage == SubPages.None) || (currentPage == Pages.Upgrades && currentSubPage == SubPages.None) || (currentPage == Pages.LateGame && currentSubPage == SubPages.None) || currentPage == Pages.Transmit || (currentPage == Pages.Emotes && currentSubPage == SubPages.None))
                 {
                     currentPage = Pages.Main;
                     TApi.SetTerminalInput("help");
@@ -1160,7 +1100,7 @@ namespace TerminalGamepad.GUILoader
             if (isUiVisible)
             {
                 myCount += Columns;
-                if (myCount > ButtonNames.Length - 1 || (!upDown && currentRow == Rows))
+                if (myCount > ButtonNames.Count - 1 || (!upDown && currentRow == Rows))
                     myCount -= Columns;
 
                 myCountInedx = myCount - (Limit * (Page - 1));
@@ -1188,7 +1128,7 @@ namespace TerminalGamepad.GUILoader
             {
                 myCount += 1;
                 myCountInedx = myCount - (Limit * (Page - 1));
-                if (myCount > ButtonNames.Length - 1)
+                if (myCount > ButtonNames.Count - 1)
                 { 
                     myCount -= 1;
                     myCountInedx = myCount - (Limit * (Page - 1));
