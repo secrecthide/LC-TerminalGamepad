@@ -42,7 +42,8 @@ namespace TerminalGamepad.GUILoader
 
         private int myCount = 0;
         private int myCountInedx = 0;
-        private int ItemAmount = 1;
+        private int Amount = 1;
+        private int AmountLimit = 9999;
         private int tempItemAmount;
         private int Page = 1;
         private int totalOfPages = 1;
@@ -72,6 +73,7 @@ namespace TerminalGamepad.GUILoader
         private bool isUiVisible = false;
         private bool isStylesLoaded = false;
         private bool justHasBeenLoaded = true;
+        private bool isAmountBoxVisible = false;
         private bool boxVisible = true;
         public static bool leftRight = false;
         public static bool upDown = false;
@@ -89,13 +91,18 @@ namespace TerminalGamepad.GUILoader
             ButtonNames = MainButtonNames;
             mls = BepInEx.Logging.Logger.CreateLogSource("TerminalGamepad");
 
-            LGU.Setup();
-            TooManyEmotes.Setup();
+            SetupComp();
             TerminalEvents();
             UpdateMainButtonNames();
             UpdatePagesMode();
             DrawBoxForOneSecond();
+        }
 
+        private void SetupComp()
+        {
+            LGU.Setup();
+            TooManyEmotes.Setup();
+            SellMyScrap.Setup();
         }
 
         private void Update()
@@ -207,9 +214,9 @@ namespace TerminalGamepad.GUILoader
 
                 if (currentPage == Pages.Store && currentSubPage == SubPages.None)
                 {
-                    if (TApi.GetTerminalInput() != $"{ButtonNames[myCount].ToLower()} {ItemAmount}")
+                    if (TApi.GetTerminalInput() != $"{ButtonNames[myCount].ToLower()} {Amount}")
                     {
-                        TApi.SetTerminalInput($"{ButtonNames[myCount].ToLower()} {ItemAmount}");
+                        TApi.SetTerminalInput($"{ButtonNames[myCount].ToLower()} {Amount}");
                     }
                 }
 
@@ -221,6 +228,15 @@ namespace TerminalGamepad.GUILoader
                         TApi.SetTerminalInput("contract experimentation");
                     else
                         TApi.SetTerminalInput("contract " + LGU.ContractButtonNames[myCount]);
+                }
+
+                if (currentPage == Pages.OnlySellThoseScrap && currentSubPage == SubPages.None && SellMyScrap.scrapList.Count > 0)
+                {
+                    TApi.SetTerminalInput("sell item " + SellMyScrap.scrapList[myCount]);
+                }
+                if (ButtonNames[myCount].ToLower().Contains("amount"))
+                {
+                    TApi.SetTerminalInput(ButtonNames[myCount].Replace("<amount>", Amount.ToString()));
                 }
             }    
         }
@@ -271,7 +287,8 @@ namespace TerminalGamepad.GUILoader
         {
             if (currentPage == Pages.Store || justHasBeenLoaded)
             {
-                StoreButtonNames = TApi.Terminal.buyableItemsList.Select(item => item.itemName).ToList();
+                StoreButtonNames = TApi.Terminal.buyableItemsList.Select(item => item.itemName)
+                .Concat(TApi.Terminal.buyableVehicles.Select(item => item.vehicleDisplayName)).ToList();
             }
 
             if (currentPage == Pages.Moons || justHasBeenLoaded)
@@ -333,6 +350,9 @@ namespace TerminalGamepad.GUILoader
 
             if (currentPage == Pages.Emotes)
                 TooManyEmotes.GetEmotesList();
+
+            if (currentPage == Pages.OnlySellThoseScrap)
+                SellMyScrap.GetScrapList();
 
             if (justHasBeenLoaded)
                 justHasBeenLoaded = false;
@@ -399,7 +419,6 @@ namespace TerminalGamepad.GUILoader
             var spiltText = Text.Split(new char[] { ',', '"' }, StringSplitOptions.RemoveEmptyEntries);
             return spiltText;
         }
-
         private void OnGUI()
         {
             if (!isStylesLoaded)
@@ -415,11 +434,14 @@ namespace TerminalGamepad.GUILoader
                 GUI.backgroundColor = ReadColor(ModBase.BoxBackgroundColor.Value);
                 GUI.Box(new Rect(MenuX, MenuY, MenuWidth, MenuHeight), boxText, boxStyle);
 
-                if (currentPage == Pages.Store && currentSubPage == SubPages.None)
+                if ((currentPage == Pages.Store || (currentPage == Pages.SellMyScrap && ButtonNames[myCount].ToLower().Contains("amount")) || (currentPage == Pages.LateGame && TApi.GetTerminalInput().ToLower().Contains("deadline"))) && currentSubPage == SubPages.None)
                 {
+                    isAmountBoxVisible = true;
                     GUI.backgroundColor = ReadColor(ModBase.AmountBoxbackgroundColor.Value);
-                    GUI.TextField(new Rect(MenuX + (Screen.width * 0.006f), MenuY - 20, 65, 20), "Amount: " + ItemAmount, textFieldStyle);
+                    GUI.TextField(new Rect(MenuX + (Screen.width * 0.006f), MenuY - 20, 65, 20), "Amount: " + Amount, textFieldStyle);
                 }
+                else
+                    isAmountBoxVisible = false;
 
                 //drawing menus
                 switch (currentPage)
@@ -429,6 +451,7 @@ namespace TerminalGamepad.GUILoader
                         break;
                     case Pages.Store:
                         ButtonNames = StoreButtonNames;
+                        AmountLimit = 12;
                         break;
                     case Pages.Moons:
                         ButtonNames = MoonsButtonNames;
@@ -465,6 +488,7 @@ namespace TerminalGamepad.GUILoader
                         break;
                     case Pages.LateGame:
                         ButtonNames = LGU.MainButtonsName;
+                        AmountLimit = 999;
                         break;
                     case Pages.moreUpgrades:
                         ButtonNames = LGU.MoreUpgradesButtonsName;
@@ -483,6 +507,13 @@ namespace TerminalGamepad.GUILoader
                         break;
                     case Pages.Emotes:
                         ButtonNames = TooManyEmotes.StoreButtonsName;
+                        break;
+                    case Pages.SellMyScrap:
+                        ButtonNames = SellMyScrap.MainButtonsName;
+                        AmountLimit = 999;
+                        break;
+                    case Pages.OnlySellThoseScrap:
+                        ButtonNames = SellMyScrap.scrapList;
                         break;
                 }
                 switch (currentSubPage)
@@ -704,14 +735,14 @@ namespace TerminalGamepad.GUILoader
             keybinds.Return.performed -= Return;
 
             myCount = 0;
-            ItemAmount = 1;
+            Amount = 1;
             Page = 1;
         }
 
         private void ShowHideKeyboard(InputAction.CallbackContext context)
         {
             isUiVisible = !isUiVisible;
-            if (Gamepad.all.Count >= 1)
+            if (StartOfRound.Instance.localPlayerUsingController)
                 RoundManager.PlayRandomClip(TApi.Terminal.terminalAudio ,TApi.Terminal.keyboardClips);
         }
         private void Subbmit(InputAction.CallbackContext context)
@@ -719,7 +750,7 @@ namespace TerminalGamepad.GUILoader
             if (myCount < ButtonNames.Count)
             {
                 Pages prePage = currentPage;
-                if (Gamepad.all.Count >= 1)
+                if (StartOfRound.Instance.localPlayerUsingController)
                     RoundManager.PlayRandomClip(TApi.Terminal.terminalAudio, TApi.Terminal.keyboardClips);
 
                 if (ButtonNames == EmptyButtonNames)
@@ -789,6 +820,10 @@ namespace TerminalGamepad.GUILoader
                         {
                             currentPage = Pages.Emotes;
                         }
+                        if (TApi.GetTerminalInput().ToLower() == "sell" && SellMyScrap.enabled)
+                        {
+                            currentPage = Pages.SellMyScrap;
+                        }
                         skip = true;
                     }
                     if (currentPage == Pages.LateGame && !skip)
@@ -816,6 +851,16 @@ namespace TerminalGamepad.GUILoader
 
                         skip = true;
                     }
+                    if (currentPage == Pages.SellMyScrap && !skip)
+                    {
+                        if (TApi.GetTerminalInput().ToLower() == "sell item")
+                            currentPage = Pages.OnlySellThoseScrap;
+                        
+                        if (ButtonNames[myCount].ToLower().Contains("sell") && !ButtonNames[myCount].ToLower().Contains("item"))
+                            currentSubPage = SubPages.Confirm;
+
+                        skip = true;
+                    }
 
                     if (currentPage == Pages.Flash && !skip)
                         if (ButtonNames[myCount].ToLower() == RadarsName[myCount].ToLower())
@@ -832,7 +877,7 @@ namespace TerminalGamepad.GUILoader
                     if (currentPage == Pages.Store && !skip)
                         if (ButtonNames[myCount].ToLower() == StoreButtonNames[myCount].ToLower())
                         {
-                            tempItemAmount = ItemAmount;
+                            tempItemAmount = Amount;
                             currentSubPage = SubPages.Confirm;
                         }
 
@@ -856,6 +901,12 @@ namespace TerminalGamepad.GUILoader
 
                     if (currentPage == Pages.Emotes && !skip)
                         if (ButtonNames[myCount].ToLower() == TooManyEmotes.StoreButtonsName[myCount].ToLower())
+                        {
+                            currentSubPage = SubPages.Confirm;
+                        }
+
+                    if (currentPage == Pages.OnlySellThoseScrap && !skip)
+                        if (ButtonNames[myCount].ToLower() == SellMyScrap.scrapList[myCount].ToLower())
                         {
                             currentSubPage = SubPages.Confirm;
                         }
@@ -884,7 +935,7 @@ namespace TerminalGamepad.GUILoader
                     {
                         if (TApi.GetTerminalInput().ToLower() == "info")
                         {
-                            if (currentPage != Pages.Decor && currentPage != Pages.Emotes)
+                            if (currentPage != Pages.Decor && currentPage != Pages.Emotes && currentPage != Pages.OnlySellThoseScrap)
                                 currentSubPage = SubPages.Info;
                         }
                         else if (TApi.GetTerminalInput().ToLower() == "deny" || TApi.GetTerminalInput().ToLower() == "confirm")
@@ -935,14 +986,14 @@ namespace TerminalGamepad.GUILoader
 
                             mls.LogMessage(LGU.CountNumber(TApi.GetTerminalInput()));  
                         }
-                        else if (ButtonNames[myCount].ToLower() == "backspace")
+                        else if (ButtonNames[myCount].ToLower() == "backspace" && !skip)
                         {
                             if (TApi.GetTerminalInput().Length > 0)
                             {
                                 TApi.SetTerminalInput(TApi.GetTerminalInput().Substring(0, TApi.GetTerminalInput().Length - 1));
                             }
                         }
-                        else
+                        else if (!skip)
                         {
                             TApi.SetTerminalInput("bruteforce " + TApi.GetTerminalInput());
                             TApi.Terminal.OnSubmit();
@@ -986,14 +1037,14 @@ namespace TerminalGamepad.GUILoader
                             else if (TApi.GetTerminalInput().Length > 2 && TApi.GetTerminalInput().Length < 6 && LGU.IsNumbersOnly(ButtonNames[myCount]))
                                 TApi.SetTerminalInput($"{TApi.GetTerminalInput()}{ButtonNames[myCount]}");
                         }
-                        else if (ButtonNames[myCount].ToLower() == "backspace")
+                        else if (ButtonNames[myCount].ToLower() == "backspace" && !skip)
                         {
                             if (TApi.GetTerminalInput().Length > 0)
                             {
                                 TApi.SetTerminalInput(TApi.GetTerminalInput().Substring(0, TApi.GetTerminalInput().Length - 1));
                             }
                         }
-                        else if (ButtonNames[myCount].ToLower() == "submit")
+                        else if (ButtonNames[myCount].ToLower() == "submit" && !skip)
                         {
                             TApi.SetTerminalInput("lookup " + TApi.GetTerminalInput());
                             TApi.Terminal.OnSubmit();
@@ -1001,7 +1052,7 @@ namespace TerminalGamepad.GUILoader
 
                     }
 
-                    ItemAmount = 1;
+                    Amount = 1;
                     if (currentPage != Pages.Bruteforce && currentPage != Pages.Transmit && currentPage != Pages.Lookup)
                         TApi.Terminal.OnSubmit();
                 }
@@ -1022,7 +1073,7 @@ namespace TerminalGamepad.GUILoader
         }
         private void Return(InputAction.CallbackContext context)
         {
-            if (Gamepad.all.Count >= 1)
+            if (StartOfRound.Instance.localPlayerUsingController)
                 RoundManager.PlayRandomClip(TApi.Terminal.terminalAudio, TApi.Terminal.keyboardClips);
 
             if (currentPage != Pages.Bruteforce && currentPage != Pages.Main)
@@ -1040,7 +1091,7 @@ namespace TerminalGamepad.GUILoader
                     TApi.SetTerminalInput("help");
                 }  
 
-                if ((currentPage == Pages.Store && currentSubPage == SubPages.None) || (currentPage == Pages.Moons && currentSubPage == SubPages.None) || currentPage == Pages.Bestiary || currentPage == Pages.Logs || currentPage == Pages.Storage || currentPage == Pages.Flash || currentPage == Pages.Ping || currentPage == Pages.Monitor || currentPage == Pages.Codes || (currentPage == Pages.Decor && currentSubPage == SubPages.None) || (currentPage == Pages.Upgrades && currentSubPage == SubPages.None) || (currentPage == Pages.LateGame && currentSubPage == SubPages.None) || currentPage == Pages.Transmit || (currentPage == Pages.Emotes && currentSubPage == SubPages.None))
+                if ((currentPage == Pages.Store && currentSubPage == SubPages.None) || (currentPage == Pages.Moons && currentSubPage == SubPages.None) || currentPage == Pages.Bestiary || currentPage == Pages.Logs || currentPage == Pages.Storage || currentPage == Pages.Flash || currentPage == Pages.Ping || currentPage == Pages.Monitor || currentPage == Pages.Codes || (currentPage == Pages.Decor && currentSubPage == SubPages.None) || (currentPage == Pages.Upgrades && currentSubPage == SubPages.None) || (currentPage == Pages.LateGame && currentSubPage == SubPages.None) || currentPage == Pages.Transmit || (currentPage == Pages.Emotes && currentSubPage == SubPages.None) || (currentPage == Pages.SellMyScrap && currentSubPage == SubPages.None))
                 {
                     currentPage = Pages.Main;
                     TApi.SetTerminalInput("help");
@@ -1074,6 +1125,11 @@ namespace TerminalGamepad.GUILoader
                     currentPage = Pages.LateGame;
                     TApi.SetTerminalInput("Lategame");
                 }
+                if (currentPage == Pages.OnlySellThoseScrap && currentSubPage == SubPages.None)
+                {
+                    currentPage = Pages.SellMyScrap;
+                    TApi.SetTerminalInput("sell");
+                }
                 if (currentSubPage == SubPages.LGUConfirm)
                 {
                     currentSubPage = SubPages.None;
@@ -1094,7 +1150,7 @@ namespace TerminalGamepad.GUILoader
 
         private void GoDown(InputAction.CallbackContext context)
         {
-            if (Gamepad.all.Count >= 1)
+            if (StartOfRound.Instance.localPlayerUsingController)
                 RoundManager.PlayRandomClip(TApi.Terminal.terminalAudio, TApi.Terminal.keyboardClips);
             
             if (isUiVisible)
@@ -1108,7 +1164,7 @@ namespace TerminalGamepad.GUILoader
         }
         private void GoUp(InputAction.CallbackContext context)
         {
-            if (Gamepad.all.Count >= 1)
+            if (StartOfRound.Instance.localPlayerUsingController)
                 RoundManager.PlayRandomClip(TApi.Terminal.terminalAudio, TApi.Terminal.keyboardClips);
             
             if (isUiVisible)
@@ -1121,7 +1177,7 @@ namespace TerminalGamepad.GUILoader
         }
         private void GoRight(InputAction.CallbackContext context)
         {
-            if (Gamepad.all.Count >= 1)
+            if (StartOfRound.Instance.localPlayerUsingController)
                 RoundManager.PlayRandomClip(TApi.Terminal.terminalAudio, TApi.Terminal.keyboardClips);
 
             if (isUiVisible)
@@ -1150,7 +1206,7 @@ namespace TerminalGamepad.GUILoader
         }
         private void GoLeft(InputAction.CallbackContext context)
         {
-            if (Gamepad.all.Count >= 1)
+            if (StartOfRound.Instance.localPlayerUsingController)
                 RoundManager.PlayRandomClip(TApi.Terminal.terminalAudio, TApi.Terminal.keyboardClips);
 
             if (isUiVisible)
@@ -1180,26 +1236,26 @@ namespace TerminalGamepad.GUILoader
 
         private void PlusAmount(InputAction.CallbackContext context)
         {
-            if (Gamepad.all.Count >= 1)
+            if (StartOfRound.Instance.localPlayerUsingController)
                 RoundManager.PlayRandomClip(TApi.Terminal.terminalAudio, TApi.Terminal.keyboardClips);
 
-            if (currentPage == Pages.Store && isUiVisible && currentSubPage == SubPages.None)
+            if (isAmountBoxVisible)
             {
-                ItemAmount++;
-                if (ItemAmount > 12)
-                    ItemAmount = 1;
+                Amount++;
+                if (Amount > AmountLimit)
+                    Amount = 1;
             }
         }
         private void MinusAmount(InputAction.CallbackContext context)
         {
-            if (Gamepad.all.Count >= 1)
+            if (StartOfRound.Instance.localPlayerUsingController)
                 RoundManager.PlayRandomClip(TApi.Terminal.terminalAudio, TApi.Terminal.keyboardClips);
 
-            if (currentPage == Pages.Store && isUiVisible && currentSubPage == SubPages.None)
+            if (isAmountBoxVisible)
             {
-                ItemAmount--;
-                if (ItemAmount < 1)
-                    ItemAmount = 12;
+                Amount--;
+                if (Amount < 1)
+                    Amount = AmountLimit;
             }
         }
     }

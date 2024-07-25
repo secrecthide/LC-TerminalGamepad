@@ -9,7 +9,7 @@ namespace TerminalGamepad
     internal class LGU
     {
         private static bool? _enabled;
-        public static List<string> MainButtonsName = new List<string>() { "Lategame Store", "InitAttack", "Cooldown", "Interns", "Scrap Insurance", "Extend Deadline 1", "Contract Info", "Demon", "Bruteforce", "Lookup" };
+        public static List<string> MainButtonsName = new List<string>() { "Lategame Store", "InitAttack", "Cooldown", "Interns", "Scrap Insurance", "Extend Deadline <amount>", "Contract Info", "Demon", "Bruteforce", "Lookup" };
         public static List<string> MoreUpgradesButtonsName = new List<string>() { "Back Muscles", "Bargain Connections", "Beekeeper", "Better Scanner", "Bigger Lungs", "Charging Booster", "Climbing Gloves", "Discombobulator", "Drop Pod Thrusters", "Efficient Engines", "Fast Encryption", "Hunter", "Lethal Deals", "Lightning Rod", "Locksmith", "Malware Broadcaster", "Market Influence", "NV Headset Batteries", "Protein Powder", "Quantum Disruptor", "Running Shoes", "Shutter Batteries", "Sick Beats", "Sigurd Access", "Stimpack", "Strong Legs", "Walkie GPS" };
         public static List<string> ConfirmButtonNames = new List<string>() { "Confirm", "Deny" };
         public static List<string> DemonsButtonNames = new List<string>() { "Poltergeist", "Phantom", "Wraith", "Banshee", "Jinn", "Hantu", "Moroi", "Myling", "Goryo", "De ogen" };
@@ -20,12 +20,14 @@ namespace TerminalGamepad
         {
             get
             {
-                if (_enabled == null)
+                /*if (_enabled == null)
                 {
                     _enabled = BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey("com.malco.lethalcompany.moreshipupgrades");
                 }
 
-                return (bool)_enabled;
+                return (bool)_enabled;*/
+
+                return false;
             }
         }
 

@@ -1,80 +1,88 @@
-
 # TerminalGamepad
-### This mod makes the controller able to write on the terminal with an on-screen panel.
+### This mod enables the controller to write in the terminal with an on-screen panel.
 
 ![](https://i.imgur.com/H06o4rj.png)
 
-# Features
-+ The mod fits perfectly with any screen size (except font size).
+---
 
-+ #### The mod can find:
-  + Modded moons ✅
+### 🌟 Features
+- **Screen Adaptability**: Adapts to any screen size.
 
-  + Modded store items ✅
+- **Compatibility**:
+  - New moons mods.
+  - New store items mods.
+  - [TooManyEmotes](https://thunderstore.io/c/lethal-company/p/FlipMods/TooManyEmotes/)
+  - [SellMyScrap](https://thunderstore.io/c/lethal-company/p/Zehs/SellMyScrap/)
 
-+ #### Config:
-  + Change any colour to your style in the mod config file.
+- **Customization Options**:
+  - **Colors**: Customize the color scheme to match your style.
+  - **Layout**: Adjust the number of columns and rows to suit your preferences.
+  - **Page navigation**: Choose from four page navigation methods.
+  - **Commands**: Add commands from other mods to the panel manually.
 
-  + Add commands from other mods to show up in the panel.
+---
 
-  + Change columns and rows count to any number you love.
+### 🎮 Controls (Keyboard / Controller)
 
-  + Choose between four options to customize the pages navigation way.
+**Configure these controls in the Lethal Company settings:**
 
+- **Left Ctrl / Button North**: 
+  - Opens the commands panel.
+  
+- **Enter / Button South**: 
+  - Submits text.
+  
+- **Alt / Button East**: 
+  - Returns to the previous menu.
+  
+- **E / Right Shoulder**: 
+  - Increases the item amount by one.
+  
+- **Q / Left Shoulder**: 
+  - Decreases the item amount by one.
+  
+- **Up Arrow / Dpad Up**: 
+  - Moves up.
+  
+- **Down Arrow / Dpad Down**: 
+  - Moves down.
+  
+- **Left Arrow / Dpad Left**: 
+  - Moves left.
 
-# Controls (Keyboard / Controller)
-## You can change the following buttons in Lethal Company settings:
+- **Right Arrow / Dpad Right**: 
+  - Moves right.
 
-### Left Ctrl / Button North:
+---
 
-+ Shows commands Panel.
-
-### Enter / Button South:
-
-+ Submit Text.
-
-### Alt / Button East:
-
-+ Returns To The Previous Menu.
-
-### E / Right Shoulder:
-
-+ Adds One To The Item Amount.
-
-### Q / Left Shoulder:
-
-+ Removes One from The Item Amount.
-
-### Up Arrow / Dpad Up:
-
-+ Moves Up.
-
-### Down Arrow / Dpad Down:
-
-+ Moves Down.
-
-### Left Arrow / Dpad Left:
-
-+ Moves Left.
-
-### Right Arrow / Dpad Right:
-
-+ Moves Right.
-
-# Todo
+### 📝 Todo
 + ~~Adding transmit commands.~~
 + Adding compatibility with other terminal mods:
-  + ~~[Lategame Upgrades](https://thunderstore.io/c/lethal-company/p/malco/Lategame_Upgrades/).~~
-  + ~~[TooManyEmotes](https://thunderstore.io/c/lethal-company/p/FlipMods/TooManyEmotes/).~~
-  + [SellMyScrap](https://thunderstore.io/c/lethal-company/p/Zehs/SellMyScrap/).
-  + [TerminalExtras](https://thunderstore.io/c/lethal-company/p/anormaltwig/TerminalExtras/).
-  + [ExtraDaysToDeadline](https://thunderstore.io/c/lethal-company/p/Anubis/ExtraDaysToDeadline/).
-  + [darmuhsTerminalStuff](https://thunderstore.io/c/lethal-company/p/darmuh/darmuhsTerminalStuff/).
+  - [Lategame Upgrades](https://thunderstore.io/c/lethal-company/p/malco/Lategame_Upgrades/)
+  - ~~[TooManyEmotes](https://thunderstore.io/c/lethal-company/p/FlipMods/TooManyEmotes/)~~
+  - ~~[SellMyScrap](https://thunderstore.io/c/lethal-company/p/Zehs/SellMyScrap/)~~
+  - [TerminalExtras](https://thunderstore.io/c/lethal-company/p/anormaltwig/TerminalExtras/)
+  - [ExtraDaysToDeadline](https://thunderstore.io/c/lethal-company/p/Anubis/ExtraDaysToDeadline/)
+  - [darmuhsTerminalStuff](https://thunderstore.io/c/lethal-company/p/darmuh/darmuhsTerminalStuff/)
 
-# Notes
-+ Feel free to give any suggestions or report bugs on [this post](https://discord.com/channels/1168655651455639582/1201370625428705450)
+---
 
-# 1.3.5
+### 📌 Notes
++ Feel free to give any suggestions or report bugs on [this post](https://discord.com/channels/1168655651455639582/1201370625428705450).
+
+---
+
+### 📜 CHANGELOG
+## 1.3.8
++ Version 55 Compatibility.
++ Removed lategame upgrades compatibility (the new LGU UI caused problems).
++ Updated mod description and readme.
+
+## 1.3.7
++ Added SellMyScrap Compatibility.
++ Bugs fix.
+
+## 1.3.5
 + Added TooManyEmotes Compatibility.
 + Bugs fix.
 

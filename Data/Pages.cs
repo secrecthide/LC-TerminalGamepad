@@ -21,7 +21,9 @@
         Demon,
         Lookup,
         Bruteforce,
-        Emotes
+        Emotes,
+        SellMyScrap,
+        OnlySellThoseScrap
 
     }
 }

@@ -19,7 +19,7 @@ namespace TerminalGamepad
     {
         private const string GUID = "Secrecthide.TerminalGamepad";
         private const string Name = "TerminalGamepad";
-        private const string Version = "1.3.5";
+        private const string Version = "1.3.8";
 
         private readonly Harmony harmony = new Harmony(GUID);
         private static ModBase instance;
